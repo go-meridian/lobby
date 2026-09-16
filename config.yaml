@@ -1,0 +1,27 @@
+server:
+  host: "0.0.0.0"
+  httpPort: 9001
+  mqPort: 9002
+
+log:
+  level: "info"
+  logFile: "lobby"
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  user: "root"
+  password: ""
+  database: "lobby"
+
+redis:
+  host: "127.0.0.1"
+  port: 6379
+  password: ""
+  db: 0
+
+whitelist:
+  health: ["127.0.0.1","::1"]
+  douyin: ["127.0.0.1"]
+  kuaishou: ["127.0.0.1"]
+  internal: ["127.0.0.1"]
