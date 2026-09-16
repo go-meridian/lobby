@@ -1,12 +1,13 @@
 package main
 
 import (
-	"fmt"
-	"Lobby/common"
+	"Lobby/common/logger"
 	"Lobby/config"
 	"Lobby/dao"
+	"Lobby/db"
 	lhttp "Lobby/handler/http"
 	"Lobby/service"
+	"fmt"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -23,13 +24,18 @@ func main() {
 	}
 
 	// 初始化日志
-	logger, err := common.InitLogger(cfg, e.Logger)
+	logger, err := logger.InitLogger(cfg, e.Logger)
 	if err != nil {
 		e.Logger.Panicf("main common.InitLogger error! err[ %s ]", err.Error())
 	}
 	defer logger.Sync()
 
-	// 初始化数据层（MySQL + Redis）
+	// 初始化 MongoDB
+	if err := db.Init(cfg); err != nil {
+		logger.Fatal("main db.Init error", zap.Error(err))
+	}
+
+	// 初始化 Redis
 	if err := dao.Init(cfg); err != nil {
 		logger.Fatal("main dao.Init error", zap.Error(err))
 	}

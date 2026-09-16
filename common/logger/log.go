@@ -1,12 +1,11 @@
-package common
+package logger
 
 import (
-	"fmt"
+	"Lobby/config"
+
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/natefinch/lumberjack.v2"
-	"Lobby/config"
 )
 
 func InitLogger(cfg *config.Config, logger echo.Logger) (*zap.Logger, error) {
@@ -20,12 +19,10 @@ func InitLogger(cfg *config.Config, logger echo.Logger) (*zap.Logger, error) {
 	}
 	encoderConfig.Level = zap.NewAtomicLevelAt(logLevel)
 
-	output := &lumberjack.Logger{
-		Filename:   fmt.Sprintf("logs/%s.log", cfg.Log.LogFile),
-		MaxSize:    500,
-		MaxBackups: 30,
-		MaxAge:     1,
-		Compress:   true,
+	output, err := NewLogWriter("logs", cfg.Log.LogFile, cfg.Log.MaxSize, cfg.Log.MaxAge)
+	if err != nil {
+		logger.Error("common.InitLogger NewLogWriter error! err[ %s ]", err.Error())
+		return nil, err
 	}
 
 	core := zapcore.NewCore(

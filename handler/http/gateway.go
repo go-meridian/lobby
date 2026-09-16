@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"Lobby/service"
+
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 )
@@ -20,17 +21,17 @@ func NewAPIHandler(logger *zap.Logger) *APIHandler {
 
 // GatewayRequest 从 Gate 转发来的请求体
 type GatewayRequest struct {
-	SessionID uint64       + "" + json:"sessionId" + "" + 
-	UID       uint64       + "" + json:"uid" + "" + 
-	Cmd       string       + "" + json:"cmd" + "" + 
-	Data      interface{}  + "" + json:"data" + "" + 
+	SessionID uint64      `json:"sessionId"`
+	UID       uint64      `json:"uid"`
+	Cmd       string      `json:"cmd"`
+	Data      interface{} `json:"data"`
 }
 
 // GatewayResponse 返回给 Gate 的响应体
 type GatewayResponse struct {
-	Code    int          + "" + json:"codeError" + "" +
-	Message string       + "" + json:"message" + "" + 
-	Data    interface{}  + "" + json:"data" + "" + 
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
 }
 
 // HandleGateway 处理来自 Gate 的转发请求

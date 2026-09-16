@@ -14,13 +14,12 @@ type ServerConfig struct {
 type LogConfig struct {
 	Level   string `json:"level" yaml:"level"`
 	LogFile string `json:"logFile" yaml:"logFile"`
+	MaxSize int    `json:"maxSize" yaml:"maxSize"` // 单文件最大 MB，默认 500
+	MaxAge  int    `json:"maxAge" yaml:"maxAge"`   // 旧日志保留天数，默认 30
 }
 
-type MySQLConfig struct {
-	Host     string `json:"host" yaml:"host"`
-	Port     int    `json:"port" yaml:"port"`
-	User     string `json:"user" yaml:"user"`
-	Password string `json:"password" yaml:"password"`
+type MongoConfig struct {
+	URI      string `json:"uri" yaml:"uri"`
 	Database string `json:"database" yaml:"database"`
 }
 
@@ -41,7 +40,7 @@ type WhitelistConfig struct {
 type Config struct {
 	Server    *ServerConfig    `json:"server" yaml:"server"`
 	Log       *LogConfig       `json:"log" yaml:"log"`
-	MySQL     *MySQLConfig     `json:"mysql" yaml:"mysql"`
+	Mongo     *MongoConfig     `json:"mongo" yaml:"mongo"`
 	Redis     *RedisConfig     `json:"redis" yaml:"redis"`
 	Whitelist *WhitelistConfig `json:"whitelist" yaml:"whitelist"`
 }
