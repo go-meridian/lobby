@@ -11,14 +11,13 @@ import (
 	"go.uber.org/zap"
 )
 
-// EnsureStream 确保 JetStream Stream 和 Consumer 存在
+// EnsureStream 确保 JetStream Stream 和 Consumer 存在（消费端使用）
 func (c *Client) EnsureStream(cfg *natsModel.StreamConfig) *codeerror2.CodeError {
 	js, err := c.Conn.JetStream()
 	if err != nil {
 		return codeerror2.StreamError.Msg("JetStream context error: " + err.Error())
 	}
 
-	// 创建 Stream
 	streamCfg := &natsClient.StreamConfig{
 		Name:      cfg.StreamName,
 		Subjects:  []string{fmt.Sprintf("%s.*", cfg.StreamSubject)},
@@ -33,7 +32,6 @@ func (c *Client) EnsureStream(cfg *natsModel.StreamConfig) *codeerror2.CodeError
 	}
 	c.logger.Info("JetStream stream ensured", zap.String("stream", cfg.StreamName))
 
-	// 创建 Pull Consumer
 	consumerCfg := &natsClient.ConsumerConfig{
 		Durable:       cfg.ConsumerName,
 		DeliverPolicy: natsClient.DeliverAllPolicy,
@@ -53,6 +51,44 @@ func (c *Client) EnsureStream(cfg *natsModel.StreamConfig) *codeerror2.CodeError
 	}
 	c.logger.Info("JetStream consumer ensured", zap.String("consumer", cfg.ConsumerName))
 
+	return nil
+}
+
+// EnsurePublishStream 确保 JetStream Stream 存在（发送端使用，不创建 Consumer）
+func (c *Client) EnsurePublishStream(streamName, subjectPrefix string) *codeerror2.CodeError {
+	js, err := c.Conn.JetStream()
+	if err != nil {
+		return codeerror2.StreamError.Msg("JetStream context error: " + err.Error())
+	}
+
+	streamCfg := &natsClient.StreamConfig{
+		Name:      streamName,
+		Subjects:  []string{fmt.Sprintf("%s.*", subjectPrefix)},
+		Storage:   natsClient.FileStorage,
+		Retention: natsClient.WorkQueuePolicy,
+		MaxAge:    24 * time.Hour,
+	}
+
+	_, err = js.AddStream(streamCfg)
+	if err != nil && !errors.Is(err, natsClient.ErrStreamNameAlreadyInUse) {
+		return codeerror2.StreamError.Msg("add stream error: " + err.Error())
+	}
+	c.logger.Info("JetStream publish stream ensured", zap.String("stream", streamName))
+
+	return nil
+}
+
+// Publish 发布消息到 JetStream
+func (c *Client) Publish(subject string, data []byte) *codeerror2.CodeError {
+	js, err := c.Conn.JetStream()
+	if err != nil {
+		return codeerror2.StreamError.Msg("JetStream context error: " + err.Error())
+	}
+
+	_, err = js.Publish(subject, data)
+	if err != nil {
+		return codeerror2.NATSError.Msg("publish error: " + err.Error())
+	}
 	return nil
 }
 

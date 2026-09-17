@@ -1,4 +1,4 @@
-package service
+package handler
 
 import (
 	codeerror2 "lobby/model/codeerror"
@@ -6,7 +6,14 @@ import (
 	"go.uber.org/zap"
 )
 
-// ServiceFunc 业务处理函数签名（cmd 由路由层传入，service 不需要关心）
+var logger *zap.Logger
+
+// Init 初始化 handler 层
+func Init(log *zap.Logger) {
+	logger = log
+}
+
+// ServiceFunc 业务处理函数签名
 type ServiceFunc func(requestID string, uid uint64, data interface{}) (interface{}, *codeerror2.CodeError)
 
 var cmdRegistry = make(map[string]ServiceFunc)

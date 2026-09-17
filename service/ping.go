@@ -1,13 +1,14 @@
 package service
 
 import (
+	"lobby/handler"
 	"lobby/model/codeerror"
 
 	"go.uber.org/zap"
 )
 
 func init() {
-	Register("PING", PingService)
+	handler.Register("PING", PingService)
 }
 
 // PingService 健康检查业务逻辑

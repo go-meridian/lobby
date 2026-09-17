@@ -1,20 +1,13 @@
 package nats
 
 import (
-	modelNATS "lobby/model/nats"
-	"lobby/service"
+	"lobby/handler"
 )
 
 func init() {
-	RegisterQueue("gateway", service.RouteCmd, &modelNATS.QueueConfig{
-		StreamConfig: modelNATS.StreamConfig{
-			StreamName:    "GATEWAY",
-			StreamSubject: "gateway.request",
-			ConsumerName:  "lobby-gateway",
-			AckWait:       30,
-			MaxDeliver:    3,
-		},
-		WorkerCount: 8,
-		BatchSize:   16,
-	})
+	// Gate→Lobby Core NATS 订阅（同步请求-响应）
+	RegisterCoreSubscription("gate2lobby.*", handler.RouteCmd, 8)
+
+	// Lobby→Gate 异步发布
+	RegisterPublishStream("LOBBY2GATE", "lobby2gate")
 }

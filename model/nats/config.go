@@ -11,6 +11,8 @@ import (
 type NATSClient interface {
 	EnsureStream(cfg *StreamConfig) *codeerror.CodeError
 	JetStream() (natsLib.JetStreamContext, error)
+	Subscribe(subject string, handler natsLib.MsgHandler) (*natsLib.Subscription, error)
+	PublishSync(subject string, data []byte) *codeerror.CodeError
 }
 
 // StreamConfig Stream 配置

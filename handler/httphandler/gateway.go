@@ -1,9 +1,9 @@
 package httphandler
 
 import (
+	"lobby/handler"
 	"lobby/model/gateway"
 	httpModel "lobby/model/http"
-	"lobby/service"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -30,7 +30,7 @@ func HandleGateway(h *httpModel.APIHandler) echo.HandlerFunc {
 			zap.Uint64("sessionId", req.SessionID),
 		)
 
-		result, ce := service.RouteCmd(requestID, req.Cmd, req.UID, req.Data)
+		result, ce := handler.RouteCmd(requestID, req.Cmd, req.UID, req.Data)
 		if ce != nil {
 			h.Logger.Error("HandleGateway route error",
 				zap.String("requestID", requestID),
