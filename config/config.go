@@ -1,7 +1,9 @@
 package config
 
 import (
-	"github.com/labstack/echo/v4"
+	"fmt"
+	codeerror2 "lobby/model/codeerror"
+
 	"github.com/spf13/viper"
 )
 
@@ -14,8 +16,8 @@ type ServerConfig struct {
 type LogConfig struct {
 	Level   string `json:"level" yaml:"level"`
 	LogFile string `json:"logFile" yaml:"logFile"`
-	MaxSize int    `json:"maxSize" yaml:"maxSize"` // 单文件最大 MB，默认 500
-	MaxAge  int    `json:"maxAge" yaml:"maxAge"`   // 旧日志保留天数，默认 30
+	MaxSize int    `json:"maxSize" yaml:"maxSize"`
+	MaxAge  int    `json:"maxAge" yaml:"maxAge"`
 }
 
 type MongoConfig struct {
@@ -30,32 +32,30 @@ type RedisConfig struct {
 	DB       int    `json:"db" yaml:"db"`
 }
 
-type WhitelistConfig struct {
-	Health   []string `json:"health" yaml:"health"`
-	Douyin   []string `json:"douyin" yaml:"douyin"`
-	KuaiShou []string `json:"kuaishou" yaml:"kuaishou"`
-	Internal []string `json:"internal" yaml:"internal"`
+type NATSConfig struct {
+	URL string `json:"url" yaml:"url"`
 }
 
 type Config struct {
-	Server    *ServerConfig    `json:"server" yaml:"server"`
-	Log       *LogConfig       `json:"log" yaml:"log"`
-	Mongo     *MongoConfig     `json:"mongo" yaml:"mongo"`
-	Redis     *RedisConfig     `json:"redis" yaml:"redis"`
-	Whitelist *WhitelistConfig `json:"whitelist" yaml:"whitelist"`
+	Server *ServerConfig `json:"server" yaml:"server"`
+	Log    *LogConfig    `json:"log" yaml:"log"`
+	Mongo  *MongoConfig  `json:"mongo" yaml:"mongo"`
+	Redis  *RedisConfig  `json:"redis" yaml:"redis"`
+	NATS   *NATSConfig   `json:"nats" yaml:"nats"`
 }
 
-func Init(logger echo.Logger) (*Config, error) {
+// Init 初始化配置
+func Init() (*Config, *codeerror2.CodeError) {
 	viper.SetConfigFile("config.yaml")
 	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
-		logger.Error("config.Init viper.ReadInConfig error! err[ %s ]", err.Error())
-		return nil, err
+		fmt.Printf("config.Init viper.ReadInConfig error: %s\n", err.Error())
+		return nil, codeerror2.ConfigError.Msg("config.Init viper.ReadInConfig error: " + err.Error())
 	}
 	cfg := &Config{}
 	if err := viper.Unmarshal(cfg); err != nil {
-		logger.Error("config.Init viper.Unmarshal error! err[ %s ]", err.Error())
-		return nil, err
+		fmt.Printf("config.Init viper.Unmarshal error: %s\n", err.Error())
+		return nil, codeerror2.ConfigError.Msg("config.Init viper.Unmarshal error: " + err.Error())
 	}
 	return cfg, nil
 }

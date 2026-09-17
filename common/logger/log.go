@@ -1,28 +1,33 @@
 package logger
 
 import (
-	"Lobby/config"
+	"fmt"
+	codeerror2 "lobby/model/codeerror"
 
-	"github.com/labstack/echo/v4"
+	"lobby/config"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-func InitLogger(cfg *config.Config, logger echo.Logger) (*zap.Logger, error) {
+var log *zap.Logger
+
+// Init 初始化全局日志
+func Init(cfg *config.Config) *codeerror2.CodeError {
 	encoderConfig := zap.NewProductionConfig()
 	encoderConfig.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	logLevel, err := zapcore.ParseLevel(cfg.Log.Level)
 	if err != nil {
-		logger.Error("common.InitLogger zapcore.ParseLevel error! err[ %s ]", err.Error())
-		return nil, err
+		fmt.Printf("logger.Init zapcore.ParseLevel error: %s\n", err.Error())
+		return codeerror2.LoggerError.Msg("InitLogger zapcore.ParseLevel error: " + err.Error())
 	}
 	encoderConfig.Level = zap.NewAtomicLevelAt(logLevel)
 
-	output, err := NewLogWriter("logs", cfg.Log.LogFile, cfg.Log.MaxSize, cfg.Log.MaxAge)
-	if err != nil {
-		logger.Error("common.InitLogger NewLogWriter error! err[ %s ]", err.Error())
-		return nil, err
+	output, ce := NewLogWriter("logs", cfg.Log.LogFile, cfg.Log.MaxSize, cfg.Log.MaxAge)
+	if ce != nil {
+		fmt.Printf("logger.Init NewLogWriter error: %s\n", ce.Error())
+		return ce
 	}
 
 	core := zapcore.NewCore(
@@ -31,5 +36,11 @@ func InitLogger(cfg *config.Config, logger echo.Logger) (*zap.Logger, error) {
 		encoderConfig.Level,
 	)
 
-	return zap.New(core), nil
+	log = zap.New(core)
+	return nil
+}
+
+// Get 获取全局日志实例
+func Get() *zap.Logger {
+	return log
 }

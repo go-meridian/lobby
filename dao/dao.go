@@ -3,10 +3,12 @@ package dao
 import (
 	"context"
 	"fmt"
+	codeerror2 "lobby/model/codeerror"
 	"time"
 
+	"lobby/config"
+
 	"github.com/redis/go-redis/v9"
-	"Lobby/config"
 )
 
 // RDB Redis 客户端实例
@@ -15,12 +17,12 @@ var RDB *redis.Client
 // DBData 所有缓存模型需实现此接口
 type DBData interface {
 	RedisKey() string
-	Pack() ([]byte, error)
-	UnPack([]byte) error
+	Pack() ([]byte, *codeerror2.CodeError)
+	UnPack([]byte) *codeerror2.CodeError
 }
 
 // Init 初始化 Redis
-func Init(cfg *config.Config) error {
+func Init(cfg *config.Config) *codeerror2.CodeError {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -31,34 +33,40 @@ func Init(cfg *config.Config) error {
 	})
 
 	if err := RDB.Ping(ctx).Err(); err != nil {
-		return fmt.Errorf("dao.Init redis.Ping error: %w", err)
+		return codeerror2.RedisError.Msg("dao.Init redis.Ping error: " + err.Error())
 	}
 
 	return nil
 }
 
 // FillDBInfo 读穿透：查 Redis -> 未命中返回 ObjectNotExist
-func FillDBInfo(ctx context.Context, key string, data DBData) error {
+func FillDBInfo(ctx context.Context, key string, data DBData) *codeerror2.CodeError {
 	val, err := RDB.Get(ctx, key).Bytes()
 	if err == redis.Nil {
-		return fmt.Errorf("ObjectNotExist")
+		return codeerror2.RedisError.Msg("ObjectNotExist")
 	}
 	if err != nil {
-		return err
+		return codeerror2.RedisError.Msg("FillDBInfo redis.Get error: " + err.Error())
 	}
 	return data.UnPack(val)
 }
 
 // SetDBInfo 写缓存（TTL 2 小时）
-func SetDBInfo(ctx context.Context, data DBData) error {
-	val, err := data.Pack()
-	if err != nil {
-		return err
+func SetDBInfo(ctx context.Context, data DBData) *codeerror2.CodeError {
+	val, ce := data.Pack()
+	if ce != nil {
+		return ce
 	}
-	return RDB.Set(ctx, data.RedisKey(), val, 2*time.Hour).Err()
+	if err := RDB.Set(ctx, data.RedisKey(), val, 2*time.Hour).Err(); err != nil {
+		return codeerror2.RedisError.Msg("SetDBInfo redis.Set error: " + err.Error())
+	}
+	return nil
 }
 
 // DelDBInfo 失效缓存
-func DelDBInfo(ctx context.Context, key string) error {
-	return RDB.Del(ctx, key).Err()
+func DelDBInfo(ctx context.Context, key string) *codeerror2.CodeError {
+	if err := RDB.Del(ctx, key).Err(); err != nil {
+		return codeerror2.RedisError.Msg("DelDBInfo redis.Del error: " + err.Error())
+	}
+	return nil
 }

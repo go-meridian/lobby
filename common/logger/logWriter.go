@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	codeerror2 "lobby/model/codeerror"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,26 +12,23 @@ import (
 )
 
 // LogWriter 按日期和文件大小双重维度轮转日志文件
-// 文件名格式: {prefix}.{YYYYMMDD}.{seq}
-// 示例: lobby.20260916.1, lobby.20260916.2, lobby.20260917.1
 type LogWriter struct {
-	dir     string // 日志目录
-	prefix  string // 文件名前缀
-	maxSize int64  // 单文件最大字节数
-	maxAge  int    // 旧日志保留天数
+	dir     string
+	prefix  string
+	maxSize int64
+	maxAge  int
 
 	mu      sync.Mutex
 	file    *os.File
-	curDate string // 当前日期 YYYYMMDD
-	curSize int64  // 当前文件已写字节数
-	curSeq  int    // 当前文件序号
+	curDate string
+	curSize int64
+	curSeq  int
 }
 
 // NewLogWriter 创建日志写入器
-// dir: 日志目录, prefix: 文件名前缀, maxSizeMB: 单文件最大 MB, maxAge: 保留天数
-func NewLogWriter(dir, prefix string, maxSizeMB, maxAge int) (*LogWriter, error) {
+func NewLogWriter(dir, prefix string, maxSizeMB, maxAge int) (*LogWriter, *codeerror2.CodeError) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, fmt.Errorf("create log dir error: %w", err)
+		return nil, codeerror2.LoggerError.Msg("create log dir error: " + err.Error())
 	}
 
 	if maxSizeMB <= 0 {
@@ -47,8 +45,8 @@ func NewLogWriter(dir, prefix string, maxSizeMB, maxAge int) (*LogWriter, error)
 		maxAge:  maxAge,
 	}
 
-	if err := w.openNew(); err != nil {
-		return nil, err
+	if ce := w.openNew(); ce != nil {
+		return nil, ce
 	}
 	return w, nil
 }
@@ -59,26 +57,24 @@ func (w *LogWriter) Write(p []byte) (n int, err error) {
 
 	today := time.Now().Format("20060102")
 
-	// 日期变化：关闭旧文件，创建新文件
 	if today != w.curDate {
 		if w.file != nil {
 			w.file.Close()
 		}
 		w.curDate = today
 		w.curSeq = 0
-		if err := w.openNew(); err != nil {
-			return 0, err
+		if ce := w.openNew(); ce != nil {
+			return 0, ce
 		}
 	}
 
-	// 写入后超过大小限制：关闭旧文件，创建下一个序号文件
 	if w.curSize+int64(len(p)) > w.maxSize {
 		if w.file != nil {
 			w.file.Close()
 		}
 		w.curSeq++
-		if err := w.openNew(); err != nil {
-			return 0, err
+		if ce := w.openNew(); ce != nil {
+			return 0, ce
 		}
 	}
 
@@ -96,9 +92,7 @@ func (w *LogWriter) Close() error {
 	return nil
 }
 
-// openNew 创建新的日志文件，扫描目录确定序号，同时清理过期文件
-func (w *LogWriter) openNew() error {
-	// 扫描目录，找到当前日期的最大序号
+func (w *LogWriter) openNew() *codeerror2.CodeError {
 	seq := w.findMaxSeq(w.curDate)
 	if w.curSeq == 0 {
 		w.curSeq = seq + 1
@@ -107,7 +101,7 @@ func (w *LogWriter) openNew() error {
 	filename := filepath.Join(w.dir, fmt.Sprintf("%s.%s.%d", w.prefix, w.curDate, w.curSeq))
 	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		return fmt.Errorf("open log file error: %w", err)
+		return codeerror2.LoggerError.Msg("open log file error: " + err.Error())
 	}
 
 	w.file = f
@@ -118,13 +112,10 @@ func (w *LogWriter) openNew() error {
 		w.curSize = 0
 	}
 
-	// 触发旧文件清理
 	w.cleanOldFiles()
-
 	return nil
 }
 
-// findMaxSeq 查找指定日期下已存在的最大序号
 func (w *LogWriter) findMaxSeq(date string) int {
 	pattern := fmt.Sprintf("%s.%s.", w.prefix, date)
 	maxSeq := 0
@@ -154,7 +145,6 @@ func (w *LogWriter) findMaxSeq(date string) int {
 	return maxSeq
 }
 
-// cleanOldFiles 清理超过 maxAge 天的日志文件
 func (w *LogWriter) cleanOldFiles() {
 	if w.maxAge <= 0 {
 		return
@@ -177,7 +167,6 @@ func (w *LogWriter) cleanOldFiles() {
 			continue
 		}
 
-		// 解析日期部分: prefix.YYYYMMDD.seq
 		rest := name[len(prefix):]
 		parts := strings.SplitN(rest, ".", 2)
 		if len(parts) < 2 {

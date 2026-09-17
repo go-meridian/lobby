@@ -3,6 +3,9 @@ server:
   httpPort: 9001
   mqPort: 9002
 
+nats:
+  url: "nats://127.0.0.1:4222"
+
 log:
   level: "info"
   logFile: "lobby"
@@ -18,9 +21,3 @@ redis:
   port: 6379
   password: ""
   db: 0
-
-whitelist:
-  health: ["127.0.0.1","::1"]
-  douyin: ["127.0.0.1"]
-  kuaishou: ["127.0.0.1"]
-  internal: ["127.0.0.1"]
