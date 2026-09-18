@@ -49,10 +49,21 @@ func (c *Client) Subscribe(subject string, handler natsLib.MsgHandler) (*natsLib
 	return c.Conn.Subscribe(subject, handler)
 }
 
-// PublishSync 同步发布消息到 NATS Core（不等待回复）
+// Publish 异步发布消息到 NATS Core（不等待 flush）
+func (c *Client) Publish(subject string, data []byte) *codeerror2.CodeError {
+	if err := c.Conn.Publish(subject, data); err != nil {
+		return codeerror2.NATSError.Msg("publish error: " + err.Error())
+	}
+	return nil
+}
+
+// PublishSync 同步发布消息到 NATS Core（等待 flush 确认）
 func (c *Client) PublishSync(subject string, data []byte) *codeerror2.CodeError {
 	if err := c.Conn.Publish(subject, data); err != nil {
 		return codeerror2.NATSError.Msg("publish error: " + err.Error())
+	}
+	if err := c.Conn.Flush(); err != nil {
+		return codeerror2.NATSError.Msg("flush error: " + err.Error())
 	}
 	return nil
 }

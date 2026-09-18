@@ -78,8 +78,8 @@ func (c *Client) EnsurePublishStream(streamName, subjectPrefix string) *codeerro
 	return nil
 }
 
-// Publish 发布消息到 JetStream
-func (c *Client) Publish(subject string, data []byte) *codeerror2.CodeError {
+// JetStreamPublish 发布消息到 JetStream
+func (c *Client) JetStreamPublish(subject string, data []byte) *codeerror2.CodeError {
 	js, err := c.Conn.JetStream()
 	if err != nil {
 		return codeerror2.StreamError.Msg("JetStream context error: " + err.Error())
