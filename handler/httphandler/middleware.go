@@ -6,9 +6,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/SilentQianyi/logger"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"go.uber.org/zap"
 )
 
 var reqIDCounter uint64
@@ -32,7 +32,7 @@ func RequestID(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 // AccessLog 请求日志中间件，包含 requestID
-func AccessLog(log *zap.Logger) echo.MiddlewareFunc {
+func AccessLog(log *logger.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			req := c.Request()
@@ -42,11 +42,11 @@ func AccessLog(log *zap.Logger) echo.MiddlewareFunc {
 			stop := time.Now()
 			res := c.Response()
 			log.Info("request",
-				zap.String("requestID", requestID),
-				zap.String("method", req.Method),
-				zap.String("uri", req.RequestURI),
-				zap.Int("status", res.Status),
-				zap.Int64("latency_ms", stop.Sub(start).Milliseconds()),
+				logger.String("requestID", requestID),
+				logger.String("method", req.Method),
+				logger.String("uri", req.RequestURI),
+				logger.Int("status", res.Status),
+				logger.Int64("latency_ms", stop.Sub(start).Milliseconds()),
 			)
 			return err
 		}
@@ -54,14 +54,14 @@ func AccessLog(log *zap.Logger) echo.MiddlewareFunc {
 }
 
 // Recover panic 恢复中间件
-func Recover(log *zap.Logger) echo.MiddlewareFunc {
+func Recover(log *logger.Logger) echo.MiddlewareFunc {
 	return middleware.RecoverWithConfig(middleware.RecoverConfig{
 		LogErrorFunc: func(c echo.Context, err error, stack []byte) error {
 			requestID, _ := c.Get(ContextKeyRequestID).(string)
 			log.Error("panic recovered",
-				zap.String("requestID", requestID),
-				zap.Error(err),
-				zap.String("stack", string(stack)),
+				logger.String("requestID", requestID),
+				logger.Error(err),
+				logger.String("stack", string(stack)),
 			)
 			return err
 		},

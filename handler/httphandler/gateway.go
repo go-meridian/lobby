@@ -6,8 +6,8 @@ import (
 	httpModel "lobby/model/http"
 	"net/http"
 
+	"github.com/SilentQianyi/logger"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 )
 
 // HandleGateway 处理来自 Gate 的转发请求
@@ -24,18 +24,18 @@ func HandleGateway(h *httpModel.APIHandler) echo.HandlerFunc {
 		}
 
 		h.Logger.Info("HandleGateway",
-			zap.String("requestID", requestID),
-			zap.String("cmd", req.Cmd),
-			zap.Uint64("uid", req.UID),
-			zap.Uint64("sessionId", req.SessionID),
+			logger.String("requestID", requestID),
+			logger.String("cmd", req.Cmd),
+			logger.Uint64("uid", req.UID),
+			logger.Uint64("sessionId", req.SessionID),
 		)
 
 		result, ce := handler.RouteCmd(requestID, req.Cmd, req.UID, req.Data)
 		if ce != nil {
 			h.Logger.Error("HandleGateway route error",
-				zap.String("requestID", requestID),
-				zap.String("cmd", req.Cmd),
-				zap.String("error", ce.Error()),
+				logger.String("requestID", requestID),
+				logger.String("cmd", req.Cmd),
+				logger.String("error", ce.Error()),
 			)
 			return c.JSON(http.StatusOK, &gateway.Response{
 				RequestID: requestID,

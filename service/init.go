@@ -1,22 +1,25 @@
 package service
 
 import (
-	modelNATS "lobby/model/nats"
-
-	"go.uber.org/zap"
+	"github.com/SilentQianyi/logger"
 )
 
-var logger *zap.Logger
+// Publisher 发布器接口
+type Publisher interface {
+	Publish(cmd string, data []byte) error
+}
 
-var publisher *modelNATS.NATSPublisher
+var log *logger.Logger
+
+var publisher Publisher
 
 // Init 初始化 service 层
-func Init(log *zap.Logger, pub *modelNATS.NATSPublisher) {
-	logger = log
+func Init(l *logger.Logger, pub Publisher) {
+	log = l
 	publisher = pub
 }
 
-// GetPublisher 获取 NATS 发布器
-func GetPublisher() *modelNATS.NATSPublisher {
+// GetPublisher 获取发布器
+func GetPublisher() Publisher {
 	return publisher
 }

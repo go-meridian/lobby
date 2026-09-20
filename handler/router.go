@@ -3,14 +3,14 @@ package handler
 import (
 	"lobby/model/codeerror"
 
-	"go.uber.org/zap"
+	"github.com/SilentQianyi/logger"
 )
 
-var logger *zap.Logger
+var log *logger.Logger
 
 // Init 初始化 handler 层
-func Init(log *zap.Logger) {
-	logger = log
+func Init(l *logger.Logger) {
+	log = l
 }
 
 // ServiceFunc 业务处理函数签名
@@ -25,7 +25,7 @@ func Register(cmd string, fn ServiceFunc) {
 
 // RouteCmd 根据命令字分发到对应 service
 func RouteCmd(requestID string, cmd string, uid uint64, data interface{}) (interface{}, *codeerror.CodeError) {
-	logger.Info("RouteCmd", zap.String("requestID", requestID), zap.String("cmd", cmd), zap.Uint64("uid", uid))
+	log.Info("RouteCmd", logger.String("requestID", requestID), logger.String("cmd", cmd), logger.Uint64("uid", uid))
 
 	fn, ok := cmdRegistry[cmd]
 	if !ok {

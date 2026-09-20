@@ -1,13 +1,13 @@
 package httpModel
 
-import "go.uber.org/zap"
+import "github.com/SilentQianyi/logger"
 
 // APIHandler HTTP API 处理器
 type APIHandler struct {
-	Logger *zap.Logger
+	Logger *logger.Logger
 }
 
 // NewAPIHandler 创建 API 处理器
-func NewAPIHandler(logger *zap.Logger) *APIHandler {
-	return &APIHandler{Logger: logger}
+func NewAPIHandler(log *logger.Logger) *APIHandler {
+	return &APIHandler{Logger: log}
 }

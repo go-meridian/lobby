@@ -1,10 +1,10 @@
 package httphandler
 
-import "go.uber.org/zap"
+import "github.com/SilentQianyi/logger"
 
-var logger *zap.Logger
+var log *logger.Logger
 
 // Init 初始化 HTTP handler 层
-func Init(log *zap.Logger) {
-	logger = log
+func Init(l *logger.Logger) {
+	log = l
 }

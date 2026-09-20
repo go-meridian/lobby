@@ -1,7 +1,15 @@
 # github.com/SilentQianyi/codeerror v1.0.1
 ## explicit; go 1.16
 github.com/SilentQianyi/codeerror
-# github.com/cespare/xxhash/v2 v2.2.0
+# github.com/SilentQianyi/logger v1.0.1
+## explicit; go 1.22.0
+github.com/SilentQianyi/logger
+# github.com/SilentQianyi/mq v1.0.1
+## explicit; go 1.22.0
+github.com/SilentQianyi/mq
+github.com/SilentQianyi/mq/nats
+github.com/SilentQianyi/mq/redis
+# github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
 # github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
@@ -13,6 +21,9 @@ github.com/fsnotify/fsnotify
 # github.com/golang-jwt/jwt v3.2.2+incompatible
 ## explicit
 github.com/golang-jwt/jwt
+# github.com/google/uuid v1.6.0
+## explicit
+github.com/google/uuid
 # github.com/hashicorp/hcl v1.0.0
 ## explicit
 github.com/hashicorp/hcl
@@ -60,8 +71,8 @@ github.com/mattn/go-isatty
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
-# github.com/nats-io/nats.go v1.53.1
-## explicit; go 1.25.0
+# github.com/nats-io/nats.go v1.37.0
+## explicit; go 1.20
 github.com/nats-io/nats.go
 github.com/nats-io/nats.go/encoders/builtin
 github.com/nats-io/nats.go/internal/parser
@@ -197,7 +208,7 @@ go.mongodb.org/mongo-driver/v2/x/mongo/driver/ocsp
 go.mongodb.org/mongo-driver/v2/x/mongo/driver/session
 go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology
 go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage
-# go.uber.org/multierr v1.10.0
+# go.uber.org/multierr v1.11.0
 ## explicit; go 1.19
 go.uber.org/multierr
 # go.uber.org/zap v1.27.0
