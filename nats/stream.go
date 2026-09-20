@@ -3,19 +3,20 @@ package nats
 import (
 	"errors"
 	"fmt"
-	codeerror2 "lobby/model/codeerror"
 	natsModel "lobby/model/nats"
 	"time"
+
+	"lobby/model/codeerror"
 
 	natsClient "github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 )
 
 // EnsureStream 确保 JetStream Stream 和 Consumer 存在（消费端使用）
-func (c *Client) EnsureStream(cfg *natsModel.StreamConfig) *codeerror2.CodeError {
+func (c *Client) EnsureStream(cfg *natsModel.StreamConfig) *codeerror.CodeError {
 	js, err := c.Conn.JetStream()
 	if err != nil {
-		return codeerror2.StreamError.Msg("JetStream context error: " + err.Error())
+		return codeerror.StreamError.Msg("JetStream context error: " + err.Error())
 	}
 
 	streamCfg := &natsClient.StreamConfig{
@@ -28,7 +29,7 @@ func (c *Client) EnsureStream(cfg *natsModel.StreamConfig) *codeerror2.CodeError
 
 	_, err = js.AddStream(streamCfg)
 	if err != nil && !errors.Is(err, natsClient.ErrStreamNameAlreadyInUse) {
-		return codeerror2.StreamError.Msg("add stream error: " + err.Error())
+		return codeerror.StreamError.Msg("add stream error: " + err.Error())
 	}
 	c.logger.Info("JetStream stream ensured", zap.String("stream", cfg.StreamName))
 
@@ -47,7 +48,7 @@ func (c *Client) EnsureStream(cfg *natsModel.StreamConfig) *codeerror2.CodeError
 
 	_, err = js.AddConsumer(cfg.StreamName, consumerCfg)
 	if err != nil && !errors.Is(err, natsClient.ErrConsumerNameAlreadyInUse) {
-		return codeerror2.ConsumerError.Msg("add consumer error: " + err.Error())
+		return codeerror.ConsumerError.Msg("add consumer error: " + err.Error())
 	}
 	c.logger.Info("JetStream consumer ensured", zap.String("consumer", cfg.ConsumerName))
 
@@ -55,10 +56,10 @@ func (c *Client) EnsureStream(cfg *natsModel.StreamConfig) *codeerror2.CodeError
 }
 
 // EnsurePublishStream 确保 JetStream Stream 存在（发送端使用，不创建 Consumer）
-func (c *Client) EnsurePublishStream(streamName, subjectPrefix string) *codeerror2.CodeError {
+func (c *Client) EnsurePublishStream(streamName, subjectPrefix string) *codeerror.CodeError {
 	js, err := c.Conn.JetStream()
 	if err != nil {
-		return codeerror2.StreamError.Msg("JetStream context error: " + err.Error())
+		return codeerror.StreamError.Msg("JetStream context error: " + err.Error())
 	}
 
 	streamCfg := &natsClient.StreamConfig{
@@ -71,7 +72,7 @@ func (c *Client) EnsurePublishStream(streamName, subjectPrefix string) *codeerro
 
 	_, err = js.AddStream(streamCfg)
 	if err != nil && !errors.Is(err, natsClient.ErrStreamNameAlreadyInUse) {
-		return codeerror2.StreamError.Msg("add stream error: " + err.Error())
+		return codeerror.StreamError.Msg("add stream error: " + err.Error())
 	}
 	c.logger.Info("JetStream publish stream ensured", zap.String("stream", streamName))
 
@@ -79,15 +80,15 @@ func (c *Client) EnsurePublishStream(streamName, subjectPrefix string) *codeerro
 }
 
 // JetStreamPublish 发布消息到 JetStream
-func (c *Client) JetStreamPublish(subject string, data []byte) *codeerror2.CodeError {
+func (c *Client) JetStreamPublish(subject string, data []byte) *codeerror.CodeError {
 	js, err := c.Conn.JetStream()
 	if err != nil {
-		return codeerror2.StreamError.Msg("JetStream context error: " + err.Error())
+		return codeerror.StreamError.Msg("JetStream context error: " + err.Error())
 	}
 
 	_, err = js.Publish(subject, data)
 	if err != nil {
-		return codeerror2.NATSError.Msg("publish error: " + err.Error())
+		return codeerror.NATSError.Msg("publish error: " + err.Error())
 	}
 	return nil
 }

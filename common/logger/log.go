@@ -2,7 +2,8 @@ package logger
 
 import (
 	"fmt"
-	codeerror2 "lobby/model/codeerror"
+
+	"lobby/model/codeerror"
 
 	"lobby/config"
 
@@ -13,14 +14,14 @@ import (
 var log *zap.Logger
 
 // Init 初始化全局日志
-func Init(cfg *config.Config) *codeerror2.CodeError {
+func Init(cfg *config.Config) *codeerror.CodeError {
 	encoderConfig := zap.NewProductionConfig()
 	encoderConfig.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	logLevel, err := zapcore.ParseLevel(cfg.Log.Level)
 	if err != nil {
 		fmt.Printf("logger.Init zapcore.ParseLevel error: %s\n", err.Error())
-		return codeerror2.LoggerError.Msg("InitLogger zapcore.ParseLevel error: " + err.Error())
+		return codeerror.LoggerError.Msg("InitLogger zapcore.ParseLevel error: " + err.Error())
 	}
 	encoderConfig.Level = zap.NewAtomicLevelAt(logLevel)
 

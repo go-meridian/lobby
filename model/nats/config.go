@@ -2,6 +2,7 @@ package natsModel
 
 import (
 	"lobby/model"
+
 	"lobby/model/codeerror"
 
 	natsLib "github.com/nats-io/nats.go"

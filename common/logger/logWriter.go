@@ -2,13 +2,14 @@ package logger
 
 import (
 	"fmt"
-	codeerror2 "lobby/model/codeerror"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"lobby/model/codeerror"
 )
 
 // LogWriter 按日期和文件大小双重维度轮转日志文件
@@ -26,9 +27,9 @@ type LogWriter struct {
 }
 
 // NewLogWriter 创建日志写入器
-func NewLogWriter(dir, prefix string, maxSizeMB, maxAge int) (*LogWriter, *codeerror2.CodeError) {
+func NewLogWriter(dir, prefix string, maxSizeMB, maxAge int) (*LogWriter, *codeerror.CodeError) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, codeerror2.LoggerError.Msg("create log dir error: " + err.Error())
+		return nil, codeerror.LoggerError.Msg("create log dir error: " + err.Error())
 	}
 
 	if maxSizeMB <= 0 {
@@ -92,7 +93,7 @@ func (w *LogWriter) Close() error {
 	return nil
 }
 
-func (w *LogWriter) openNew() *codeerror2.CodeError {
+func (w *LogWriter) openNew() *codeerror.CodeError {
 	seq := w.findMaxSeq(w.curDate)
 	if w.curSeq == 0 {
 		w.curSeq = seq + 1
@@ -101,7 +102,7 @@ func (w *LogWriter) openNew() *codeerror2.CodeError {
 	filename := filepath.Join(w.dir, fmt.Sprintf("%s.%s.%d", w.prefix, w.curDate, w.curSeq))
 	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		return codeerror2.LoggerError.Msg("open log file error: " + err.Error())
+		return codeerror.LoggerError.Msg("open log file error: " + err.Error())
 	}
 
 	w.file = f

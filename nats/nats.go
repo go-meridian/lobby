@@ -2,7 +2,8 @@ package nats
 
 import (
 	"lobby/config"
-	codeerror2 "lobby/model/codeerror"
+
+	"lobby/model/codeerror"
 
 	natsLib "github.com/nats-io/nats.go"
 	"go.uber.org/zap"
@@ -16,10 +17,10 @@ type Client struct {
 }
 
 // Init 初始化 NATS 连接
-func Init(cfg *config.NATSConfig, logger *zap.Logger) (*Client, *codeerror2.CodeError) {
+func Init(cfg *config.NATSConfig, logger *zap.Logger) (*Client, *codeerror.CodeError) {
 	nc, err := natsLib.Connect(cfg.URL)
 	if err != nil {
-		return nil, codeerror2.NATSError.Msg("nats.Connect error: " + err.Error())
+		return nil, codeerror.NATSError.Msg("nats.Connect error: " + err.Error())
 	}
 
 	logger.Info("NATS connected", zap.String("url", cfg.URL))
@@ -50,20 +51,20 @@ func (c *Client) Subscribe(subject string, handler natsLib.MsgHandler) (*natsLib
 }
 
 // Publish 异步发布消息到 NATS Core（不等待 flush）
-func (c *Client) Publish(subject string, data []byte) *codeerror2.CodeError {
+func (c *Client) Publish(subject string, data []byte) *codeerror.CodeError {
 	if err := c.Conn.Publish(subject, data); err != nil {
-		return codeerror2.NATSError.Msg("publish error: " + err.Error())
+		return codeerror.NATSError.Msg("publish error: " + err.Error())
 	}
 	return nil
 }
 
 // PublishSync 同步发布消息到 NATS Core（等待 flush 确认）
-func (c *Client) PublishSync(subject string, data []byte) *codeerror2.CodeError {
+func (c *Client) PublishSync(subject string, data []byte) *codeerror.CodeError {
 	if err := c.Conn.Publish(subject, data); err != nil {
-		return codeerror2.NATSError.Msg("publish error: " + err.Error())
+		return codeerror.NATSError.Msg("publish error: " + err.Error())
 	}
 	if err := c.Conn.Flush(); err != nil {
-		return codeerror2.NATSError.Msg("flush error: " + err.Error())
+		return codeerror.NATSError.Msg("flush error: " + err.Error())
 	}
 	return nil
 }

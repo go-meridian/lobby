@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	codeerror2 "lobby/model/codeerror"
+	"lobby/model/codeerror"
 
 	"github.com/spf13/viper"
 )
@@ -45,17 +45,17 @@ type Config struct {
 }
 
 // Init 初始化配置
-func Init() (*Config, *codeerror2.CodeError) {
+func Init() (*Config, *codeerror.CodeError) {
 	viper.SetConfigFile("config.yaml")
 	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Printf("config.Init viper.ReadInConfig error: %s\n", err.Error())
-		return nil, codeerror2.ConfigError.Msg("config.Init viper.ReadInConfig error: " + err.Error())
+		return nil, codeerror.ConfigError.Msg("config.Init viper.ReadInConfig error: " + err.Error())
 	}
 	cfg := &Config{}
 	if err := viper.Unmarshal(cfg); err != nil {
 		fmt.Printf("config.Init viper.Unmarshal error: %s\n", err.Error())
-		return nil, codeerror2.ConfigError.Msg("config.Init viper.Unmarshal error: " + err.Error())
+		return nil, codeerror.ConfigError.Msg("config.Init viper.Unmarshal error: " + err.Error())
 	}
 	return cfg, nil
 }

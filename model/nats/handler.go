@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"lobby/model"
-	codeerror2 "lobby/model/codeerror"
+
+	"lobby/model/codeerror"
 
 	natsLib "github.com/nats-io/nats.go"
 	"go.uber.org/zap"
@@ -41,7 +42,7 @@ func (h *GatewayHandler) Queue(name string, handler model.HandlerFunc, cfg *Queu
 }
 
 // Start 启动所有已注册队列的订阅和 WorkerPool
-func (h *GatewayHandler) Start() *codeerror2.CodeError {
+func (h *GatewayHandler) Start() *codeerror.CodeError {
 	for _, pq := range h.pending {
 		if ce := h.addSubscription(pq.name, pq.handler, pq.cfg); ce != nil {
 			return ce
@@ -52,7 +53,7 @@ func (h *GatewayHandler) Start() *codeerror2.CodeError {
 }
 
 // addSubscription 为单个队列创建订阅
-func (h *GatewayHandler) addSubscription(name string, handler model.HandlerFunc, cfg *QueueConfig) *codeerror2.CodeError {
+func (h *GatewayHandler) addSubscription(name string, handler model.HandlerFunc, cfg *QueueConfig) *codeerror.CodeError {
 	streamCfg := &cfg.StreamConfig
 	if ce := h.client.EnsureStream(streamCfg); ce != nil {
 		return ce
@@ -60,7 +61,7 @@ func (h *GatewayHandler) addSubscription(name string, handler model.HandlerFunc,
 
 	js, err := h.client.JetStream()
 	if err != nil {
-		return codeerror2.StreamError.Msg("JetStream context error: " + err.Error())
+		return codeerror.StreamError.Msg("JetStream context error: " + err.Error())
 	}
 
 	sub, err := js.PullSubscribe(
@@ -68,7 +69,7 @@ func (h *GatewayHandler) addSubscription(name string, handler model.HandlerFunc,
 		cfg.ConsumerName,
 	)
 	if err != nil {
-		return codeerror2.ConsumerError.Msg("PullSubscribe error: " + err.Error())
+		return codeerror.ConsumerError.Msg("PullSubscribe error: " + err.Error())
 	}
 
 	pool := NewWorkerPool(cfg.WorkerCount, handler, h.logger)

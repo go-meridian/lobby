@@ -3,6 +3,7 @@ module lobby
 go 1.27.1
 
 require (
+	github.com/SilentQianyi/codeerror v1.0.1
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/nats-io/nats.go v1.53.1
 	github.com/redis/go-redis/v9 v9.7.0

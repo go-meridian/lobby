@@ -2,9 +2,10 @@ package nats
 
 import (
 	"lobby/model"
-	"lobby/model/codeerror"
 	modelNATS "lobby/model/nats"
 	natsClient "lobby/nats"
+
+	"lobby/model/codeerror"
 
 	"go.uber.org/zap"
 )

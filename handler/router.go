@@ -1,7 +1,7 @@
 package handler
 
 import (
-	codeerror2 "lobby/model/codeerror"
+	"lobby/model/codeerror"
 
 	"go.uber.org/zap"
 )
@@ -14,7 +14,7 @@ func Init(log *zap.Logger) {
 }
 
 // ServiceFunc 业务处理函数签名
-type ServiceFunc func(requestID string, uid uint64, data interface{}) (interface{}, *codeerror2.CodeError)
+type ServiceFunc func(requestID string, uid uint64, data interface{}) (interface{}, *codeerror.CodeError)
 
 var cmdRegistry = make(map[string]ServiceFunc)
 
@@ -24,12 +24,12 @@ func Register(cmd string, fn ServiceFunc) {
 }
 
 // RouteCmd 根据命令字分发到对应 service
-func RouteCmd(requestID string, cmd string, uid uint64, data interface{}) (interface{}, *codeerror2.CodeError) {
+func RouteCmd(requestID string, cmd string, uid uint64, data interface{}) (interface{}, *codeerror.CodeError) {
 	logger.Info("RouteCmd", zap.String("requestID", requestID), zap.String("cmd", cmd), zap.Uint64("uid", uid))
 
 	fn, ok := cmdRegistry[cmd]
 	if !ok {
-		return nil, codeerror2.UnknownCmd.Msg("unknown cmd: " + cmd)
+		return nil, codeerror.UnknownCmd.Msg("unknown cmd: " + cmd)
 	}
 	return fn(requestID, uid, data)
 }

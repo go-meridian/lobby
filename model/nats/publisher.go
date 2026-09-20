@@ -2,8 +2,9 @@ package natsModel
 
 import (
 	"encoding/json"
-	"lobby/model/codeerror"
 	"lobby/model/gateway"
+
+	"lobby/model/codeerror"
 
 	"go.uber.org/zap"
 )
