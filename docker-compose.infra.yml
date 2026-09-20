@@ -1,0 +1,85 @@
+services:
+  lobby:
+    container_name: lobby-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    ports:
+      - "9001:9001"
+      - "9002:9002"
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - lobby-net
+      - mongo-net
+      - redis-net
+      - nats-net
+
+  mongo:
+    container_name: mongo
+    image: mongo:7.0.39
+    restart: "no"
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - mongo-net
+
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    restart: "no"
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - redis-net
+
+  nats:
+    container_name: nats
+    image: nats:latest
+    restart: "no"
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["--http_port", "8222"]
+    networks:
+      - nats-net
+
+networks:
+  lobby-net:
+    name: lobby-net
+    driver: bridge
+  mongo-net:
+    name: mongo-net
+    driver: bridge
+  redis-net:
+    name: redis-net
+    driver: bridge
+  nats-net:
+    name: nats-net
+    driver: bridge
+
+volumes:
+  mongo-data:
+  redis-data:

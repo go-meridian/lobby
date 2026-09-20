@@ -1,0 +1,28 @@
+services:
+  lobby:
+    container_name: lobby-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    ports:
+      - "9001:9001"
+      - "9002:9002"
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - lobby-net
+      - mongo-net
+      - redis-net
+      - nats-net
+
+networks:
+  lobby-net:
+    name: lobby-net
+    driver: bridge
+  mongo-net:
+    external: true
+  redis-net:
+    external: true
+  nats-net:
+    external: true

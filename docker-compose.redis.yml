@@ -1,0 +1,24 @@
+services:
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    restart: "no"
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - redis-net
+
+networks:
+  redis-net:
+    name: redis-net
+    driver: bridge
+
+volumes:
+  redis-data:

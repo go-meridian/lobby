@@ -1,0 +1,23 @@
+# 构建产物
+*.exe
+lobby.exe
+logs/
+logs/**
+
+# IDE 文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# 文档
+*.md
+.qoder/
+
+# 临时文件
+tmp/
+temp/

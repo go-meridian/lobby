@@ -1,0 +1,27 @@
+# 构建阶段
+FROM golang:1.27-alpine AS builder
+
+WORKDIR /app
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o lobby .
+
+# 运行阶段
+FROM alpine:3.18
+
+RUN apk --no-cache add ca-certificates tzdata
+
+ENV TZ=Asia/Shanghai
+
+WORKDIR /app
+
+COPY --from=builder /app/lobby .
+
+# 创建日志目录
+RUN mkdir -p logs
+
+EXPOSE 9001 9002
+
+# 配置文件通过 volume 挂载
+CMD ["./lobby"]

@@ -1,0 +1,43 @@
+services:
+  mongo:
+    container_name: mongo
+    image: mongo:7.0.39
+    restart: "no"
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - mongo-net
+
+  # 可选: 数据库管理工具，用 make db-admin 启动
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: mongo-express
+    restart: "no"
+    profiles:
+      - admin
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "38081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+    networks:
+      - mongo-net
+
+networks:
+  mongo-net:
+    name: mongo-net
+    driver: bridge
+
+volumes:
+  mongo-data:
