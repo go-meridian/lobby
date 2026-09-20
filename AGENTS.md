@@ -265,7 +265,7 @@ make infra-up
 make down
 ```
 
-### 罯络配置
+### 网络配置
 
 Docker 容器使用 `lobby-network` 桥接网络，服务间通过容器名访问：
 - MongoDB: `mongo:27017`
