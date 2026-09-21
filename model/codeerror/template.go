@@ -13,6 +13,7 @@ var (
 	ConfigError = ce.New(1002, "config error")
 	DBError     = ce.New(1003, "database error")
 	RedisError  = ce.New(1004, "redis error")
+	EtcdError   = ce.New(1005, "etcd error")
 	UnknownCmd  = ce.New(1010, "unknown cmd")
 )
 

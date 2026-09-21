@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 
+	"github.com/go-meridian/elect"
 	"github.com/go-meridian/lobby/model/codeerror"
 	"github.com/spf13/viper"
 )
@@ -52,11 +53,12 @@ type NATSConfig struct {
 }
 
 type Config struct {
-	Server *ServerConfig `json:"server" yaml:"server"`
-	Log    *LogConfig    `json:"log" yaml:"log"`
-	Mongo  *MongoConfig  `json:"mongo" yaml:"mongo"`
-	Redis  *RedisConfig  `json:"redis" yaml:"redis"`
-	NATS   *NATSConfig   `json:"nats" yaml:"nats"`
+	Server *ServerConfig  `json:"server" yaml:"server"`
+	Log    *LogConfig     `json:"log" yaml:"log"`
+	Mongo  *MongoConfig   `json:"mongo" yaml:"mongo"`
+	Redis  *RedisConfig   `json:"redis" yaml:"redis"`
+	NATS   *NATSConfig    `json:"nats" yaml:"nats"`
+	Elect  *elect.Config  `json:"elect,omitempty" yaml:"elect,omitempty"`
 }
 
 // Init 初始化配置

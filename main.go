@@ -6,11 +6,15 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/go-meridian/elect"
+	_ "github.com/go-meridian/elect/etcd"
+	_ "github.com/go-meridian/elect/redis"
 	"github.com/go-meridian/lobby/config"
 	"github.com/go-meridian/lobby/dao"
 	"github.com/go-meridian/lobby/db"
 	"github.com/go-meridian/lobby/handler"
-	httpHandler "github.com/go-meridian/lobby/handler/httphandler"
+	electhandler "github.com/go-meridian/lobby/handler/elect"
+	httpHandler "github.com/go-meridian/lobby/handler/http"
 	natsHandler "github.com/go-meridian/lobby/handler/mq"
 	"github.com/go-meridian/lobby/service"
 	"github.com/go-meridian/logger"
@@ -60,6 +64,10 @@ func main() {
 		log.Fatal("mq.NewClient error", logger.Error(err))
 	}
 	defer mqClient.Close()
+
+	// ========== 2.5 选主 ==========
+	electhandler.Init(cfg, log)
+	defer elect.Close()
 
 	// ========== 3. Handler 层 ==========
 	handler.Init(log)

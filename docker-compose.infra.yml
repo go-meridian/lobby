@@ -17,11 +17,14 @@ services:
         condition: service_healthy
       nats:
         condition: service_healthy
+      etcd:
+        condition: service_healthy
     networks:
       - lobby-net
       - mongo-net
       - redis-net
       - nats-net
+      - etcd-net
 
   mongo:
     container_name: mongo
@@ -66,6 +69,24 @@ services:
     networks:
       - nats-net
 
+  etcd:
+    container_name: etcd
+    image: bitnami/etcd:3.5
+    restart: "no"
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+    ports:
+      - "2379:2379"
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - etcd-net
+
 networks:
   lobby-net:
     name: lobby-net
@@ -78,6 +99,9 @@ networks:
     driver: bridge
   nats-net:
     name: nats-net
+    driver: bridge
+  etcd-net:
+    name: etcd-net
     driver: bridge
 
 volumes:

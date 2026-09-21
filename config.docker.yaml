@@ -22,3 +22,15 @@ redis:
   port: 6379
   password: ""
   db: 0
+
+elect:
+  mode: "redis"  # 或 "etcd"
+  prefix: "/elect/leader"
+  ttl: 10
+  redis:
+    host: "redis"
+    port: 6379
+  etcd:
+    endpoints:
+      - "etcd:2379"
+    dialTimeout: 5000
