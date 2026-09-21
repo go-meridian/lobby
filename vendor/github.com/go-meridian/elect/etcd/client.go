@@ -148,7 +148,7 @@ func (e *etcdElector) campaign() {
 			select {
 			case <-e.ctx.Done():
 				return
-			case <-time.After(3 * time.Second):
+			case <-time.After(1 * time.Second):
 				continue
 			}
 		}

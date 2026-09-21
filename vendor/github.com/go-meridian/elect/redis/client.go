@@ -133,7 +133,7 @@ func (e *redisElector) campaign() {
 			select {
 			case <-e.ctx.Done():
 				return
-			case <-time.After(3 * time.Second):
+			case <-time.After(1 * time.Second):
 				continue
 			}
 		}
@@ -165,7 +165,7 @@ func (e *redisElector) campaign() {
 			select {
 			case <-e.ctx.Done():
 				return
-			case <-time.After(3 * time.Second):
+			case <-time.After(1 * time.Second):
 			}
 		}
 	}
