@@ -1,12 +1,12 @@
 package httphandler
 
 import (
-	"lobby/handler"
-	"lobby/model/gateway"
-	httpModel "lobby/model/http"
 	"net/http"
 
-	"github.com/SilentQianyi/logger"
+	"github.com/go-meridian/lobby/handler"
+	"github.com/go-meridian/lobby/model/gateway"
+	httpModel "github.com/go-meridian/lobby/model/http"
+	"github.com/go-meridian/logger"
 	"github.com/labstack/echo/v4"
 )
 

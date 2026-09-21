@@ -1,6 +1,6 @@
 package httphandler
 
-import "github.com/SilentQianyi/logger"
+import "github.com/go-meridian/logger"
 
 var log *logger.Logger
 

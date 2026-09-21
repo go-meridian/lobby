@@ -1,6 +1,6 @@
 package httpModel
 
-import "github.com/SilentQianyi/logger"
+import "github.com/go-meridian/logger"
 
 // APIHandler HTTP API 处理器
 type APIHandler struct {

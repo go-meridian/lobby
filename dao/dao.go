@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"lobby/model/codeerror"
-
-	"lobby/config"
-
+	"github.com/go-meridian/lobby/config"
+	"github.com/go-meridian/lobby/model/codeerror"
 	"github.com/redis/go-redis/v9"
 )
 

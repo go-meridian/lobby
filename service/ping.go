@@ -1,10 +1,9 @@
 package service
 
 import (
-	"lobby/handler"
-	"lobby/model/codeerror"
-
-	"github.com/SilentQianyi/logger"
+	"github.com/go-meridian/lobby/handler"
+	"github.com/go-meridian/lobby/model/codeerror"
+	"github.com/go-meridian/logger"
 )
 
 func init() {

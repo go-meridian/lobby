@@ -1,9 +1,8 @@
 package handler
 
 import (
-	"lobby/model/codeerror"
-
-	"github.com/SilentQianyi/logger"
+	"github.com/go-meridian/lobby/model/codeerror"
+	"github.com/go-meridian/logger"
 )
 
 var log *logger.Logger

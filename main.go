@@ -6,19 +6,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"lobby/config"
-	"lobby/dao"
-	"lobby/db"
-	"lobby/handler"
-	httpHandler "lobby/handler/httphandler"
-	natsHandler "lobby/handler/mq"
-	"lobby/service"
-
-	"github.com/SilentQianyi/logger"
-	mq "github.com/SilentQianyi/mq"
-	_ "github.com/SilentQianyi/mq/nats"
-	_ "github.com/SilentQianyi/mq/redis"
-
+	"github.com/go-meridian/lobby/config"
+	"github.com/go-meridian/lobby/dao"
+	"github.com/go-meridian/lobby/db"
+	"github.com/go-meridian/lobby/handler"
+	httpHandler "github.com/go-meridian/lobby/handler/httphandler"
+	natsHandler "github.com/go-meridian/lobby/handler/mq"
+	"github.com/go-meridian/lobby/service"
+	"github.com/go-meridian/logger"
+	"github.com/go-meridian/mq"
 	"github.com/labstack/echo/v4"
 )
 

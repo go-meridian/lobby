@@ -1,9 +1,8 @@
 package httphandler
 
 import (
-	modelHTTP "lobby/model/http"
-
-	"github.com/SilentQianyi/logger"
+	modelHTTP "github.com/go-meridian/lobby/model/http"
+	"github.com/go-meridian/logger"
 	"github.com/labstack/echo/v4"
 )
 

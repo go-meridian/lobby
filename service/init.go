@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/SilentQianyi/logger"
+	"github.com/go-meridian/logger"
 )
 
 // Publisher 发布器接口

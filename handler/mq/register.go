@@ -1,8 +1,6 @@
 package mqhandler
 
-import (
-	"lobby/handler"
-)
+import "github.com/go-meridian/lobby/handler"
 
 func init() {
 	// Gate→Lobby Core NATS 订阅（同步请求-响应）

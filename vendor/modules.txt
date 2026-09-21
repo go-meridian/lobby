@@ -1,14 +1,3 @@
-# github.com/SilentQianyi/codeerror v1.0.1
-## explicit; go 1.16
-github.com/SilentQianyi/codeerror
-# github.com/SilentQianyi/logger v1.0.1
-## explicit; go 1.22.0
-github.com/SilentQianyi/logger
-# github.com/SilentQianyi/mq v1.0.1
-## explicit; go 1.22.0
-github.com/SilentQianyi/mq
-github.com/SilentQianyi/mq/nats
-github.com/SilentQianyi/mq/redis
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
@@ -18,12 +7,18 @@ github.com/dgryski/go-rendezvous
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
+# github.com/go-meridian/codeerror v1.0.2
+## explicit; go 1.16
+github.com/go-meridian/codeerror
+# github.com/go-meridian/logger v1.0.2
+## explicit; go 1.22.0
+github.com/go-meridian/logger
+# github.com/go-meridian/mq v1.0.2
+## explicit; go 1.22.0
+github.com/go-meridian/mq
 # github.com/golang-jwt/jwt v3.2.2+incompatible
 ## explicit
 github.com/golang-jwt/jwt
-# github.com/google/uuid v1.6.0
-## explicit
-github.com/google/uuid
 # github.com/hashicorp/hcl v1.0.0
 ## explicit
 github.com/hashicorp/hcl
@@ -39,7 +34,6 @@ github.com/hashicorp/hcl/json/token
 # github.com/klauspost/compress v1.19.2
 ## explicit; go 1.24
 github.com/klauspost/compress
-github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/internal/cpuinfo
@@ -71,18 +65,6 @@ github.com/mattn/go-isatty
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
-# github.com/nats-io/nats.go v1.37.0
-## explicit; go 1.20
-github.com/nats-io/nats.go
-github.com/nats-io/nats.go/encoders/builtin
-github.com/nats-io/nats.go/internal/parser
-github.com/nats-io/nats.go/util
-# github.com/nats-io/nkeys v0.4.15
-## explicit; go 1.24.0
-github.com/nats-io/nkeys
-# github.com/nats-io/nuid v1.0.1
-## explicit
-github.com/nats-io/nuid
 # github.com/pelletier/go-toml/v2 v2.2.2
 ## explicit; go 1.16
 github.com/pelletier/go-toml/v2
@@ -226,15 +208,8 @@ go.uber.org/zap/zapcore
 ## explicit; go 1.25.0
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
-golang.org/x/crypto/blake2b
-golang.org/x/crypto/curve25519
-golang.org/x/crypto/internal/alias
-golang.org/x/crypto/internal/poly1305
-golang.org/x/crypto/nacl/box
-golang.org/x/crypto/nacl/secretbox
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
-golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/scrypt
 # golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 ## explicit; go 1.20
@@ -258,7 +233,6 @@ golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 # golang.org/x/sys v0.46.0
 ## explicit; go 1.25.0
-golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.39.0

@@ -1,6 +1,6 @@
 package codeerror
 
-import ce "github.com/SilentQianyi/codeerror"
+import ce "github.com/go-meridian/codeerror"
 
 // CodeError re-export，保持对外部包的透明
 type CodeError = ce.CodeError

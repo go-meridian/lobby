@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
-	"lobby/model/codeerror"
 
+	"github.com/go-meridian/lobby/model/codeerror"
 	"github.com/spf13/viper"
 )
 

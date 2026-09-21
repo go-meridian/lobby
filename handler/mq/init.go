@@ -1,11 +1,10 @@
 package mqhandler
 
 import (
-	"lobby/model"
-	"lobby/model/codeerror"
-
-	"github.com/SilentQianyi/logger"
-	mq "github.com/SilentQianyi/mq"
+	"github.com/go-meridian/lobby/model"
+	"github.com/go-meridian/lobby/model/codeerror"
+	"github.com/go-meridian/logger"
+	"github.com/go-meridian/mq"
 )
 
 var (

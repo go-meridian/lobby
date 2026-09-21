@@ -4,10 +4,8 @@ import (
 	"context"
 	"time"
 
-	"lobby/model/codeerror"
-
-	"lobby/config"
-
+	"github.com/go-meridian/lobby/config"
+	"github.com/go-meridian/lobby/model/codeerror"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
