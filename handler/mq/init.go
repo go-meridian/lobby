@@ -1,6 +1,8 @@
 package mqhandler
 
 import (
+	"encoding/json"
+
 	"github.com/go-meridian/lobby/model"
 	"github.com/go-meridian/lobby/model/codeerror"
 	"github.com/go-meridian/logger"
@@ -20,14 +22,29 @@ type mqPublisher struct {
 	log     *logger.Logger
 }
 
-// Publish 发布消息
-func (p *mqPublisher) Publish(cmd string, data []byte) error {
+// Publish 发布消息到指定 session
+func (p *mqPublisher) Publish(cmd string, sessionId uint64, data []byte) error {
+	pushMsg := map[string]interface{}{
+		"sessionId": sessionId,
+		"cmd":       cmd,
+		"data":      json.RawMessage(data),
+	}
+	msgBytes, err := json.Marshal(pushMsg)
+	if err != nil {
+		return err
+	}
+
 	subject := p.subject + "." + cmd
-	ce := p.client.Publish(subject, data)
+	ce := p.client.Publish(subject, msgBytes)
 	if ce != nil {
 		return ce
 	}
 	return nil
+}
+
+// PublishBroadcast 广播消息（sessionId=0）
+func (p *mqPublisher) PublishBroadcast(cmd string, data []byte) error {
+	return p.Publish(cmd, 0, data)
 }
 
 // coreSubscriptionEntry Core NATS 订阅注册

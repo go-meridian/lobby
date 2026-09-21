@@ -6,7 +6,10 @@ import (
 
 // Publisher 发布器接口
 type Publisher interface {
-	Publish(cmd string, data []byte) error
+	// Publish 发布消息到指定 session（sessionId > 0）
+	Publish(cmd string, sessionId uint64, data []byte) error
+	// PublishBroadcast 广播消息到所有 Gate（sessionId = 0）
+	PublishBroadcast(cmd string, data []byte) error
 }
 
 var log *logger.Logger
