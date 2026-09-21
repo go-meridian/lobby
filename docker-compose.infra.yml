@@ -71,12 +71,14 @@ services:
 
   etcd:
     container_name: etcd
-    image: bitnami/etcd:3.5
+    image: gcr.io/etcd-development/etcd:v3.5.17
     restart: "no"
-    environment:
-      - ALLOW_NONE_AUTHENTICATION=yes
-      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
-      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+    command: >
+      etcd
+      --name etcd
+      --advertise-client-urls http://etcd:2379
+      --listen-client-urls http://0.0.0.0:2379
+      --listen-peer-urls http://0.0.0.0:2380
     ports:
       - "2379:2379"
     healthcheck:

@@ -1,0 +1,27 @@
+name: etcd
+
+services:
+  etcd:
+    container_name: etcd
+    image: gcr.io/etcd-development/etcd:v3.5.17
+    restart: "no"
+    command: >
+      etcd
+      --name etcd
+      --advertise-client-urls http://etcd:2379
+      --listen-client-urls http://0.0.0.0:2379
+      --listen-peer-urls http://0.0.0.0:2380
+    ports:
+      - "2379:2379"
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - etcd-net
+
+networks:
+  etcd-net:
+    name: etcd-net
+    driver: bridge

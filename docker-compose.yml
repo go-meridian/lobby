@@ -15,6 +15,7 @@ services:
       - mongo-net
       - redis-net
       - nats-net
+      - etcd-net
 
 networks:
   lobby-net:
@@ -25,4 +26,6 @@ networks:
   redis-net:
     external: true
   nats-net:
+    external: true
+  etcd-net:
     external: true
