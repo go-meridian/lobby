@@ -1,5 +1,80 @@
 # 架构约定
 
+## HTTP Handler 模式
+
+### 结构体定义
+
+HTTP 请求/响应结构体定义在 `model/httpmodel/` 下，按功能建文件：
+
+```
+model/httpmodel/
+├── handler.go    # APIHandler 结构体（可选，当前为空）
+└── health.go     # HealthRequest / HealthResponse
+```
+
+### Handler 实现
+
+处理函数在 `handler/httphandler/` 下实现：
+
+```
+handler/httphandler/
+├── init.go       # Init() + APIHandler + NewAPIHandler
+├── register.go   # Register(e *echo.Echo) 路由注册
+├── health.go     # HandleHealthFunc()
+├── gateway.go    # HandleGateway(h)
+└── middleware.go  # 中间件
+```
+
+### Health Check 示例
+
+```go
+// model/httpmodel/health.go
+type HealthRequest struct {
+    Verbose bool `query:"verbose"` // 是否返回详细信息
+}
+
+type HealthResponse struct {
+    Status  string            `json:"status"`
+    Service string            `json:"service"`
+    Checks  map[string]string `json:"checks"` // 仅 verbose=true 时返回
+}
+
+// handler/httphandler/health.go
+func HandleHealthFunc() echo.HandlerFunc {
+    return func(c echo.Context) error {
+        req := &httpmodel.HealthRequest{}
+        if err := c.Bind(req); err != nil { /* 忽略 */ }
+
+        checks := map[string]string{
+            "mongodb": checkMongoDB(),
+            "redis":   checkRedis(c.Request().Context()),
+            "nats":    checkNATS(),
+        }
+
+        status := "ok"
+        for _, v := range checks {
+            if v != "ok" { status = "degraded"; break }
+        }
+
+        resp := httpmodel.HealthResponse{Status: status, Service: "lobby"}
+        if req.Verbose { resp.Checks = checks }
+
+        if status == "ok" {
+            return c.JSON(http.StatusOK, resp)
+        }
+        return c.JSON(http.StatusServiceUnavailable, resp)
+    }
+}
+```
+
+### 健康检查依赖
+
+| 服务 | 检查方式 |
+|------|---------|
+| MongoDB | `db.MDB.Client().Ping(ctx, nil)` |
+| Redis | `dao.RDB.Ping(ctx).Err()` |
+| NATS | `mqhandler.IsConnected()` |
+
 ## NATS 通信
 
 | 方向 | 模式 | Subject | 说明 |
@@ -52,7 +127,7 @@ func init() {
 // handler/httphandler/init.go
 func Register(e *echo.Echo) {
     e.GET("/health", HandleHealthFunc())
-    e.POST("/api/gateway", HandleGateway(h))
+    e.POST("/api/gatewaymodel", HandleGateway(h))
 }
 ```
 
@@ -133,7 +208,7 @@ event.Init(job.Mgr())  // 事件总线基于 job 管理器
 
 ## Elect 选主机制
 
-路径：`handler/elect/init.go`
+路径：`../../handler/electhandler`
 
 - 封装选主初始化，支持 **etcd** 和 **redis** 两种后端
 - 通过 blank import 注册后端：`_ "elect/etcd"` / `_ "elect/redis"`

@@ -4,14 +4,13 @@ import (
 	"net/http"
 
 	"github.com/go-meridian/lobby/handler"
-	"github.com/go-meridian/lobby/model/gateway"
-	httpModel "github.com/go-meridian/lobby/model/http"
+	"github.com/go-meridian/lobby/model/gatewaymodel"
 	"github.com/go-meridian/logger"
 	"github.com/labstack/echo/v4"
 )
 
 // HandleGateway 处理来自 Gate 的转发请求
-func HandleGateway(h *httpModel.APIHandler) echo.HandlerFunc {
+func HandleGateway(h *APIHandler) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		requestID, _ := c.Get(ContextKeyRequestID).(string)
 

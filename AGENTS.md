@@ -27,16 +27,15 @@ main.go
   ├── nats/                 NATS 客户端
   ├── model/                结构体定义 + 方法
   │   ├── codeerror/        CodeError 错误码
-  │   ├── gateway/          Request/Response 消息体
-  │   ├── http/             APIHandler
-  │   ├── nats/             GatewayHandler + WorkerPool + NATSPublisher + CoreSubscriber
+  │   ├── gatewaymodel/     Request/Response 消息体
+  │   ├── httpmodel/        HTTP API 请求/响应结构体
   │   └── eventmodel/       事件模型定义 (HealthEvent 等)
   ├── handler/              入口层（路由注册 + cmd 映射）
   │   ├── router.go         RouteCmd + cmd 注册表
   │   ├── httphandler/      HTTP 入口
-  │   ├── mq/               NATS 入口 (RegisterCoreSubscription, RegisterPublishStream)
-  │   ├── elect/            选主机制 (etcd/redis 后端)
-  │   └── event/            事件处理 (health 等)
+  │   ├── mqhandler/        NATS 入口 (RegisterCoreSubscription, RegisterPublishStream)
+  │   ├── electhandler/     选主机制 (etcd/redis 后端)
+  │   └── eventhandler/     事件处理 (health 等)
   └── service/              业务逻辑
 ```
 
@@ -99,7 +98,7 @@ event.Init(job.Mgr())
 
 ## Elect 选主机制
 
-路径：`handler/elect/init.go`，支持 **etcd** 和 **redis** 两种后端。
+路径：`handler/electhandler`，支持 **etcd** 和 **redis** 两种后端。
 
 - 通过 blank import 注册后端：`_ "elect/etcd"` / `_ "elect/redis"`
 - 配置项：`cfg.Elect`
@@ -139,7 +138,7 @@ func init() {
 // handler/httphandler/init.go
 func Register(e *echo.Echo) {
     e.GET("/health", HandleHealthFunc())
-    e.POST("/api/gateway", HandleGateway(h))
+    e.POST("/api/gatewaymodel", HandleGateway(h))
 }
 ```
 

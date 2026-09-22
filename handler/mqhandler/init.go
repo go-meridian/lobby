@@ -94,6 +94,14 @@ func GetPublisher() *mqPublisher {
 	return publisher
 }
 
+// IsConnected 检查 MQ 连接状态
+func IsConnected() bool {
+	if client == nil {
+		return false
+	}
+	return client.IsConnected()
+}
+
 // GetRegisteredSubscriptions 获取已注册的订阅信息（用于启动日志）
 func GetRegisteredSubscriptions() []string {
 	var result []string

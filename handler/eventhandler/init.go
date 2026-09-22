@@ -1,4 +1,4 @@
-package event
+package eventhandler
 
 import (
 	"github.com/go-meridian/event"
