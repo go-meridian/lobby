@@ -39,7 +39,7 @@ func PingService(requestID string, uid uint64, data interface{}) (interface{}, *
 ### NATS 队列自注册
 
 ```go
-// handler/nats/register.go
+// handler/mq/register.go
 func init() {
     RegisterCoreSubscription("gate2lobby.*", handler.RouteCmd, 8)
     RegisterPublishStream("LOBBY2GATE", "lobby2gate")
@@ -49,7 +49,7 @@ func init() {
 ### HTTP 路由注册
 
 ```go
-// handler/httphandler/register.go
+// handler/httphandler/init.go
 func Register(e *echo.Echo) {
     e.GET("/health", HandleHealthFunc())
     e.POST("/api/gateway", HandleGateway(h))
@@ -111,8 +111,44 @@ httpHandler.Register(e)
 ### 新增 HTTP 路由
 
 1. `handler/httphandler/` 下实现处理函数
-2. 在 `register.go` 的 `Register()` 中注册路由
+2. 在 `init.go` 的 `Register()` 中注册路由
 
 ### 新增 NATS 队列
 
-1. `handler/nats/register.go` 的 `init()` 中调用 `RegisterCoreSubscription` 或 `RegisterPublishStream`
+1. `handler/mq/register.go` 的 `init()` 中调用 `RegisterCoreSubscription` 或 `RegisterPublishStream`
+
+## Job 定时任务
+
+使用外部库 `github.com/go-meridian/job` 管理定时任务。
+
+```go
+// main.go 初始化
+job.Init(nil)
+defer job.Mgr().StopAll(10 * time.Second)
+event.Init(job.Mgr())  // 事件总线基于 job 管理器
+```
+
+- 任务调度由 job 库驱动，项目内无独立 job 目录
+- 选主成功后通过回调启动/停止定时任务
+
+## Elect 选主机制
+
+路径：`handler/elect/init.go`
+
+- 封装选主初始化，支持 **etcd** 和 **redis** 两种后端
+- 通过 blank import 注册后端：`_ "elect/etcd"` / `_ "elect/redis"`
+- 配置项：`config.yaml` 中的 `cfg.Elect`
+- 回调机制：
+  - `WithOnLeader` — 成为 Leader 时启动定时任务
+  - `WithOnDemote` — 失去 Leader 时停止任务
+
+## Event 事件系统
+
+基于 job 管理器的事件总线：
+
+| 层 | 路径 | 职责 |
+|---|---|---|
+| model/eventmodel/ | 事件结构体定义 | `HealthEvent`、`TopicHealth` 等 |
+| handler/event/ | 事件处理函数 | `onHealth(evt)` 等 |
+
+事件结构体实现 `Topic()` 方法，通过事件总线订阅和分发。

@@ -15,9 +15,9 @@ func HandleGateway(h *httpModel.APIHandler) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		requestID, _ := c.Get(ContextKeyRequestID).(string)
 
-		req := &gateway.Request{}
+		req := &gatewaymodel.Request{}
 		if err := c.Bind(req); err != nil {
-			return c.JSON(http.StatusBadRequest, &gateway.Response{
+			return c.JSON(http.StatusBadRequest, &gatewaymodel.Response{
 				Code:    -1,
 				Message: "invalid request: " + err.Error(),
 			})
@@ -37,14 +37,14 @@ func HandleGateway(h *httpModel.APIHandler) echo.HandlerFunc {
 				logger.String("cmd", req.Cmd),
 				logger.String("error", ce.Error()),
 			)
-			return c.JSON(http.StatusOK, &gateway.Response{
+			return c.JSON(http.StatusOK, &gatewaymodel.Response{
 				RequestID: requestID,
 				Code:      int(ce.GetCode()),
 				Message:   ce.GetMsg(),
 			})
 		}
 
-		return c.JSON(http.StatusOK, &gateway.Response{
+		return c.JSON(http.StatusOK, &gatewaymodel.Response{
 			RequestID: requestID,
 			Code:      0,
 			Message:   "success",

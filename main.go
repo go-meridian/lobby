@@ -10,12 +10,14 @@ import (
 	"github.com/go-meridian/elect"
 	_ "github.com/go-meridian/elect/etcd"
 	_ "github.com/go-meridian/elect/redis"
+	"github.com/go-meridian/event"
 	"github.com/go-meridian/job"
 	"github.com/go-meridian/lobby/config"
 	"github.com/go-meridian/lobby/dao"
 	"github.com/go-meridian/lobby/db"
 	"github.com/go-meridian/lobby/handler"
 	electhandler "github.com/go-meridian/lobby/handler/elect"
+	_ "github.com/go-meridian/lobby/handler/event"
 	httpHandler "github.com/go-meridian/lobby/handler/http"
 	natsHandler "github.com/go-meridian/lobby/handler/mq"
 	"github.com/go-meridian/lobby/service"
@@ -48,7 +50,10 @@ func main() {
 	log := logger.L()
 
 	// 初始化 jobmgr
-	jobmgr.Init(nil)
+	job.Init(nil)
+
+	// 初始化事件总线
+	event.Init(job.Mgr())
 
 	// ========== 2. 存储层 ==========
 	if ce := db.Init(cfg); ce != nil {
@@ -84,7 +89,7 @@ func main() {
 
 	// ========== 5. 注册（init 自注册 + 显式注册） ==========
 	// cmd 注册：service/ping.go 等通过 init() 调用 handler.Register 自注册
-	// NATS 队列注册：handler/nats/register.go 通过 init() 自注册
+	// NATS 队列注册：handler/nats/init.go 通过 init() 自注册
 	if ce := natsHandler.Register(); ce != nil {
 		log.Fatal("natsHandler.Register error", logger.String("error", ce.Error()))
 	}
@@ -110,5 +115,5 @@ func main() {
 	log.Info("Shutting down...")
 
 	// 等待所有 job 完成
-	jobmgr.Mgr().StopAll(10 * time.Second)
+	job.Mgr().StopAll(10 * time.Second)
 }

@@ -21,7 +21,10 @@ github.com/go-meridian/codeerror
 github.com/go-meridian/elect
 github.com/go-meridian/elect/etcd
 github.com/go-meridian/elect/redis
-# github.com/go-meridian/job v1.0.1
+# github.com/go-meridian/event v1.0.1
+## explicit; go 1.22.0
+github.com/go-meridian/event
+# github.com/go-meridian/job v1.0.2
 ## explicit; go 1.22.0
 github.com/go-meridian/job
 # github.com/go-meridian/logger v1.0.2

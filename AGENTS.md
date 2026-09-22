@@ -29,11 +29,14 @@ main.go
   │   ├── codeerror/        CodeError 错误码
   │   ├── gateway/          Request/Response 消息体
   │   ├── http/             APIHandler
-  │   └── nats/             GatewayHandler + WorkerPool + NATSPublisher + CoreSubscriber
+  │   ├── nats/             GatewayHandler + WorkerPool + NATSPublisher + CoreSubscriber
+  │   └── eventmodel/       事件模型定义 (HealthEvent 等)
   ├── handler/              入口层（路由注册 + cmd 映射）
   │   ├── router.go         RouteCmd + cmd 注册表
   │   ├── httphandler/      HTTP 入口
-  │   └── nats/             NATS 入口
+  │   ├── mq/               NATS 入口 (RegisterCoreSubscription, RegisterPublishStream)
+  │   ├── elect/            选主机制 (etcd/redis 后端)
+  │   └── event/            事件处理 (health 等)
   └── service/              业务逻辑
 ```
 
@@ -82,6 +85,32 @@ type NATSClient interface {
 - `PublishSync` — 发送后等待 `Flush()` 确认，适用于需要确保送达的场景
 - `JetStreamPublish` — 发布到 JetStream（在 `nats/stream.go` 中）
 
+## Job 定时任务
+
+使用外部库 `github.com/go-meridian/job` 管理定时任务。
+
+```go
+job.Init(nil)
+defer job.Mgr().StopAll(10 * time.Second)
+event.Init(job.Mgr())
+```
+
+选主成功后通过 `WithOnLeader` 回调启动任务，`WithOnDemote` 停止任务。
+
+## Elect 选主机制
+
+路径：`handler/elect/init.go`，支持 **etcd** 和 **redis** 两种后端。
+
+- 通过 blank import 注册后端：`_ "elect/etcd"` / `_ "elect/redis"`
+- 配置项：`cfg.Elect`
+
+## Event 事件系统
+
+| 层 | 路径 | 职责 |
+|---|---|---|
+| model/eventmodel/ | 事件结构体定义 | `HealthEvent`、`TopicHealth` 等 |
+| handler/event/ | 事件处理函数 | `onHealth(evt)` 等 |
+
 ## 注册模式
 
 ### Service 自注册
@@ -97,7 +126,7 @@ func PingService(requestID string, uid uint64, data interface{}) (interface{}, *
 ### NATS 队列自注册
 
 ```go
-// handler/nats/register.go
+// handler/mq/register.go
 func init() {
     RegisterCoreSubscription("gate2lobby.*", handler.RouteCmd, 8)
     RegisterPublishStream("LOBBY2GATE", "lobby2gate")
@@ -107,7 +136,7 @@ func init() {
 ### HTTP 路由注册
 
 ```go
-// handler/httphandler/register.go
+// handler/httphandler/init.go
 func Register(e *echo.Echo) {
     e.GET("/health", HandleHealthFunc())
     e.POST("/api/gateway", HandleGateway(h))
@@ -297,8 +326,8 @@ Docker 容器使用 `lobby-network` 桥接网络，服务间通过容器名访�
 ### 新增 HTTP 路由
 
 1. `handler/httphandler/` 下实现处理函数
-2. 在 `register.go` 的 `Register()` 中注册路由
+2. 在 `init.go` 的 `Register()` 中注册路由
 
 ### 新增 NATS 队列
 
-1. `handler/nats/register.go` 的 `init()` 中调用 `RegisterCoreSubscription` 或 `RegisterPublishStream`
+1. `handler/mq/register.go` 的 `init()` 中调用 `RegisterCoreSubscription` 或 `RegisterPublishStream`

@@ -1,4 +1,4 @@
-package gateway
+package gatewaymodel
 
 // Request Gate 转发给 Lobby 的请求体
 type Request struct {

@@ -36,11 +36,14 @@ main.go
   │   ├── codeerror/        CodeError 错误码
   │   ├── gateway/          Request/Response 消息体
   │   ├── http/             APIHandler
-  │   └── nats/             GatewayHandler + WorkerPool + NATSPublisher + CoreSubscriber
+  │   ├── nats/             GatewayHandler + WorkerPool + NATSPublisher + CoreSubscriber
+  │   └── eventmodel/       事件模型定义 (HealthEvent 等)
   ├── handler/              入口层（路由注册 + cmd 映射）
   │   ├── router.go         RouteCmd + cmd 注册表
   │   ├── httphandler/      HTTP 入口
-  │   └── nats/             NATS 入口
+  │   ├── mq/               NATS 入口 (RegisterCoreSubscription, RegisterPublishStream)
+  │   ├── elect/            选主机制 (etcd/redis 后端)
+  │   └── event/            事件处理 (health 等)
   └── service/              业务逻辑
 ```
 
