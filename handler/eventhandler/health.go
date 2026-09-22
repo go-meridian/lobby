@@ -6,7 +6,7 @@ import (
 )
 
 func onHealth(evt *eventmodel.HealthEvent) {
-	logger.L().Info("health eventmodel received",
+	logger.L().Info("health event received",
 		logger.String("requestID", evt.RequestID),
 		logger.String("status", evt.Status),
 	)

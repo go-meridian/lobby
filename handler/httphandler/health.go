@@ -16,24 +16,16 @@ import (
 // HandleHealthFunc 健康检查 HTTP 接口
 func HandleHealthFunc() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// 解析查询参数
 		req := &httpmodel.HealthRequest{}
 		if err := c.Bind(req); err != nil {
 			// 忽略绑定错误，使用默认值
 		}
 
 		checks := make(map[string]string)
-
-		// 检查 MongoDB
 		checks["mongodb"] = checkMongoDB()
-
-		// 检查 Redis
 		checks["redis"] = checkRedis(c.Request().Context())
-
-		// 检查 NATS
 		checks["nats"] = checkNATS()
 
-		// 判断整体状态
 		status := "ok"
 		for _, v := range checks {
 			if v != "ok" {
@@ -42,12 +34,10 @@ func HandleHealthFunc() echo.HandlerFunc {
 			}
 		}
 
-		// 根据 verbose 参数决定是否返回详细信息
 		resp := httpmodel.HealthResponse{
 			Status:  status,
 			Service: "lobby",
 		}
-
 		if req.Verbose {
 			resp.Checks = checks
 		}
