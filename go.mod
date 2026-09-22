@@ -5,6 +5,7 @@ go 1.27.1
 require (
 	github.com/go-meridian/codeerror v1.0.2
 	github.com/go-meridian/elect v1.0.1
+	github.com/go-meridian/job v1.0.1
 	github.com/go-meridian/logger v1.0.2
 	github.com/go-meridian/mq v1.0.3
 	github.com/labstack/echo/v4 v4.12.0

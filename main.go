@@ -5,10 +5,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/go-meridian/elect"
 	_ "github.com/go-meridian/elect/etcd"
 	_ "github.com/go-meridian/elect/redis"
+	"github.com/go-meridian/job"
 	"github.com/go-meridian/lobby/config"
 	"github.com/go-meridian/lobby/dao"
 	"github.com/go-meridian/lobby/db"
@@ -44,6 +46,9 @@ func main() {
 	defer logger.Close()
 
 	log := logger.L()
+
+	// 初始化 jobmgr
+	jobmgr.Init(nil)
 
 	// ========== 2. 存储层 ==========
 	if ce := db.Init(cfg); ce != nil {
@@ -103,4 +108,7 @@ func main() {
 
 	<-quit
 	log.Info("Shutting down...")
+
+	// 等待所有 job 完成
+	jobmgr.Mgr().StopAll(10 * time.Second)
 }
