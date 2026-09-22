@@ -9,6 +9,7 @@ import (
 	"github.com/go-meridian/lobby/db"
 	"github.com/go-meridian/lobby/handler/mqhandler"
 	"github.com/go-meridian/lobby/model/httpmodel"
+	"github.com/go-meridian/logger"
 	"github.com/labstack/echo/v4"
 )
 
@@ -50,6 +51,8 @@ func HandleHealthFunc() echo.HandlerFunc {
 		if req.Verbose {
 			resp.Checks = checks
 		}
+
+		log.Info("Health check response", logger.Any("response", resp))
 
 		if status == "ok" {
 			return c.JSON(http.StatusOK, resp)

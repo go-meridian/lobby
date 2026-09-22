@@ -32,7 +32,7 @@ func RequestID(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 // AccessLog 请求日志中间件，包含 requestID
-func AccessLog(log *logger.Logger) echo.MiddlewareFunc {
+func AccessLog() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			req := c.Request()
@@ -54,7 +54,7 @@ func AccessLog(log *logger.Logger) echo.MiddlewareFunc {
 }
 
 // Recover panic 恢复中间件
-func Recover(log *logger.Logger) echo.MiddlewareFunc {
+func Recover() echo.MiddlewareFunc {
 	return middleware.RecoverWithConfig(middleware.RecoverConfig{
 		LogErrorFunc: func(c echo.Context, err error, stack []byte) error {
 			requestID, _ := c.Get(ContextKeyRequestID).(string)

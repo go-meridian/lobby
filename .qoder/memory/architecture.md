@@ -1,135 +1,146 @@
 # 架构约定
 
-## HTTP Handler 模式
+## Protobuf 工作流
 
-### 结构体定义
+### 文件位置
 
-HTTP 请求/响应结构体定义在 `model/httpmodel/` 下，按功能建文件：
+| 类型 | 路径 | 说明 |
+|------|------|------|
+| Proto 源文件 | `D:\self\go\web\proto\` | 独立项目，定义所有 .proto 文件 |
+| 导出文件 | `model/proto/` | .pb.go 生成文件 |
 
-```
-model/httpmodel/
-├── handler.go    # APIHandler 结构体（可选，当前为空）
-└── health.go     # HealthRequest / HealthResponse
-```
-
-### Handler 实现
-
-处理函数在 `handler/httphandler/` 下实现：
+### Proto 包结构
 
 ```
-handler/httphandler/
-├── init.go       # Init() + APIHandler + NewAPIHandler
-├── register.go   # Register(e *echo.Echo) 路由注册
-├── health.go     # HandleHealthFunc()
-├── gateway.go    # HandleGateway(h)
-└── middleware.go  # 中间件
+model/proto/
+├── common/      common.ErrMsg, common.OnlineNum
+├── account/     account.LoginReq/LoginRsp/LoginTestReq/LoginTestRsp/ServiceToken
+├── health/      health.HealthCheckReq/HealthCheckRsp/ServiceInfo/ServiceStatus
+├── gate/        gate.GateRequest/GateResponse/GatePush/AuthReq/AuthRsp/ConnOpenNotify/ConnCloseNotify
+└── packet/      packet.MsgId 枚举
 ```
 
-### Health Check 示例
+### Gate 协议消息
+
+Gate 与 Lobby 之间使用 Protobuf 二进制通信：
 
 ```go
-// model/httpmodel/health.go
-type HealthRequest struct {
-    Verbose bool `query:"verbose"` // 是否返回详细信息
+// Gate → Lobby 请求
+type GateRequest struct {
+    ConnId    uint64  // WebSocket 连接 ID
+    RequestId uint64  // 请求 ID（匹配响应）
+    MsgId     uint32  // 消息类型 ID（packet.MsgId 枚举）
+    Payload   []byte  // 业务 Proto 序列化字节
 }
 
-type HealthResponse struct {
-    Status  string            `json:"status"`
-    Service string            `json:"service"`
-    Checks  map[string]string `json:"checks"` // 仅 verbose=true 时返回
+// Lobby → Gate 响应
+type GateResponse struct {
+    ConnId    uint64
+    RequestId uint64
+    MsgId     uint32
+    Payload   []byte
 }
 
-// handler/httphandler/health.go
-func HandleHealthFunc() echo.HandlerFunc {
-    return func(c echo.Context) error {
-        req := &httpmodel.HealthRequest{}
-        if err := c.Bind(req); err != nil { /* 忽略 */ }
-
-        checks := map[string]string{
-            "mongodb": checkMongoDB(),
-            "redis":   checkRedis(c.Request().Context()),
-            "nats":    checkNATS(),
-        }
-
-        status := "ok"
-        for _, v := range checks {
-            if v != "ok" { status = "degraded"; break }
-        }
-
-        resp := httpmodel.HealthResponse{Status: status, Service: "lobby"}
-        if req.Verbose { resp.Checks = checks }
-
-        if status == "ok" {
-            return c.JSON(http.StatusOK, resp)
-        }
-        return c.JSON(http.StatusServiceUnavailable, resp)
-    }
+// Lobby → Gate 主动推送（无 requestId）
+type GatePush struct {
+    ConnId  uint64  // 0=广播
+    MsgId   uint32
+    Payload []byte
 }
 ```
 
-### 健康检查依赖
+### MsgId 枚举
 
-| 服务 | 检查方式 |
-|------|---------|
-| MongoDB | `db.MDB.Client().Ping(ctx, nil)` |
-| Redis | `dao.RDB.Ping(ctx).Err()` |
-| NATS | `mqhandler.IsConnected()` |
+```go
+// packet/MsgId.pb.go
+MSG_HEARTBEAT_REQ  = 1001  // 心跳请求
+MSG_HEARTBEAT_RSP  = 1002  // 心跳响应
+MSG_LOGIN_REQ      = 2001  // 登录请求
+MSG_LOGIN_RSP      = 2002  // 登录响应
+MSG_LOGIN_TEST_REQ = 2003  // 测试登录请求
+MSG_LOGIN_TEST_RSP = 2004  // 测试登录响应
+```
+
+### 工作流程
+
+1. 在 `D:\self\go\web\proto\` 修改 .proto 文件
+2. 运行 `gen.bat` 生成 .pb.go
+3. 复制到 `model/proto/` 目录
+4. 若 pb.go 中 import 路径为 `proto/common` 等相对路径，需手动改为 `github.com/go-meridian/lobby/model/proto/common`
 
 ## NATS 通信
 
 | 方向 | 模式 | Subject | 说明 |
 |------|------|---------|------|
-| Gate→Lobby | NATS Core Request/Reply | `gate2lobby.{cmd}` | 同步，Gate 等待回复 |
-| Lobby→Gate | NATS Core Publish | `lobby2gate.{cmd}` | 异步，单向通知 |
+| Gate→Lobby | NATS Core Request/Reply | `gate2lobby.*` | 同步，Protobuf GateRequest/GateResponse |
+| Lobby→Gate | NATS Core Publish | `lobby2gate.{msgId}` | 异步，Protobuf GatePush |
 | Gate→Lobby | HTTP POST | `/api/gateway` | 降级方案 |
 
 ### NATSClient 接口
 
 ```go
 type NATSClient interface {
-    EnsureStream(cfg *StreamConfig) *codeerror.CodeError
-    JetStream() (natsLib.JetStreamContext, error)
-    Subscribe(subject string, handler natsLib.MsgHandler) (*natsLib.Subscription, error)
     Publish(subject string, data []byte) *codeerror.CodeError      // 异步
-    PublishSync(subject string, data []byte) *codeerror.CodeError  // 同步
+    PublishSync(subject string, data []byte) *codeerror.CodeError  // 同步，等待 flush
+    Subscribe(subject string, handler natsLib.MsgHandler) (*natsLib.Subscription, error)
 }
 ```
 
-- `Publish` — 异步发送，立即返回，适用于日志、通知等非关键场景
-- `PublishSync` — 发送后等待 `Flush()` 确认，适用于需要确保送达的场景
-- `JetStreamPublish` — 发布到 JetStream（在 `nats/stream.go` 中）
+## MsgId 路由体系
 
-## 注册模式
-
-### Service 自注册
+### 函数签名
 
 ```go
-// service/ping.go
-func init() {
-    handler.Register("PING", PingService)
-}
-func PingService(requestID string, uid uint64, data interface{}) (interface{}, *codeerror.CodeError) { ... }
+// mqhandler/ 层：NATS 订阅处理（含 msgId 用于路由分发）
+type MQHandler func(connId uint64, requestId uint64, msgId uint32, payload []byte) ([]byte, *codeerror.CodeError)
+
+// mqhandler/ 层：Service 处理函数（msgId 已由 RouteMsg 消费）
+type MsgHandler func(connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError)
 ```
 
-### NATS 队列自注册
+### 路由流程
+
+```
+NATS 消息 → handleMessage (proto.Unmarshal GateRequest)
+  → RouteMsg (根据 msgId 查找 msgRegistry)
+    → MsgHandler (service 业务处理)
+      → 返回 payload ([]byte)
+        → handleMessage 构造 GateResponse (proto.Marshal) → ReplyTo
+```
+
+### MsgId 注册
 
 ```go
-// handler/mq/register.go
+// handler/mqhandler/register.go
 func init() {
-    RegisterCoreSubscription("gate2lobby.*", handler.RouteCmd, 8)
+    RegisterCoreSubscription("gate2lobby.*", RouteMsg, 8)
     RegisterPublishStream("LOBBY2GATE", "lobby2gate")
+    Register(uint32(packet.MsgId_MSG_HEARTBEAT_REQ), heartbeatService)
 }
 ```
 
-### HTTP 路由注册
+### 新增 MsgId 命令
 
-```go
-// handler/httphandler/init.go
-func Register(e *echo.Echo) {
-    e.GET("/health", HandleHealthFunc())
-    e.POST("/api/gatewaymodel", HandleGateway(h))
-}
+1. 在 proto 项目定义 .proto 消息 + MsgId 枚举
+2. 复制 .pb.go 到 `model/proto/`
+3. 在 `handler/mqhandler/register.go` 的 `init()` 中调用 `Register(msgId, handler)`
+4. handler 函数签名：`func(connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError)`
+
+## HTTP Handler 模式
+
+### Handler 实现
+
 ```
+handler/httphandler/
+├── init.go       # Init(l) + Register(e) 路由注册
+├── health.go     # HandleHealthFunc()
+└── middleware.go  # RequestID / AccessLog / Recover / RateLimit
+```
+
+### 新增 HTTP 路由
+
+1. `handler/httphandler/` 下实现处理函数
+2. 在 `init.go` 的 `Register()` 中注册路由
 
 ## 中间件
 
@@ -143,11 +154,9 @@ func Register(e *echo.Echo) {
 ### 请求 ID 链路追踪
 
 ```
-HTTP: middleware 生成 → echo.Context → HandleGateway → RouteCmd → Service
-NATS: Gate 携带 req.RequestID → WorkerPool 提取（空则自动生成 "nats_{seq}_{ts}"）
+HTTP: middleware 生成 → echo.Context → RouteMsg → MsgHandler
+NATS: Gate 携带 req.RequestId → handleMessage 提取（空则自动生成 uint64 递增 ID）
 ```
-
-所有日志统一输出 `requestID` 字段，可串联一次请求的完整链路。
 
 ## 初始化顺序
 
@@ -159,71 +168,51 @@ logger.Init(cfg)
 // 2. 存储层
 db.Init(cfg)
 dao.Init(cfg)
-nats.Init(cfg.NATS, zapLog)
 
-// 3. Handler 层
-handler.Init(zapLog)
-httpHandler.Init(zapLog)
-natsHandler.Init(nc, zapLog)
+// 3. MQ 客户端
+mqClient, _ := mq.NewClient(mqCfg)
 
-// 4. Service 层
-service.Init(zapLog, natsHandler.GetPublisher())
+// 4. Handler 层
+httpHandler.Init(log)
+natsHandler.Init(mqClient, log)
+electhandler.Init(cfg, log)
 
-// 5. 注册
-natsHandler.Register()
+// 5. Service 层
+service.Init(log, natsHandler.GetPublisher())
 
-// 6. 启动
+// 6. 启动订阅
+natsHandler.Start()
+
+// 7. 启动 HTTP
 httpHandler.Register(e)
 ```
 
-## 新增命令流程
+## 日志模式
 
-### 新增 Service 命令
+所有包统一使用包级 `var log *logger.Logger`，通过 `Init(l *logger.Logger)` 初始化。禁止将 log 作为函数参数传递。
 
-1. `service/` 下新建文件，实现处理函数
-2. 在 `init()` 中调用 `handler.Register("CMD", YourService)`
+```go
+// 每个包的标准模式
+package xxx
 
-### 新增 HTTP 路由
+var log *logger.Logger
 
-1. `handler/httphandler/` 下实现处理函数
-2. 在 `init.go` 的 `Register()` 中注册路由
-
-### 新增 NATS 队列
-
-1. `handler/mq/register.go` 的 `init()` 中调用 `RegisterCoreSubscription` 或 `RegisterPublishStream`
+func Init(l *logger.Logger) {
+    log = l
+}
+```
 
 ## Job 定时任务
 
-使用外部库 `github.com/go-meridian/job` 管理定时任务。
-
-```go
-// main.go 初始化
-job.Init(nil)
-defer job.Mgr().StopAll(10 * time.Second)
-event.Init(job.Mgr())  // 事件总线基于 job 管理器
-```
-
-- 任务调度由 job 库驱动，项目内无独立 job 目录
-- 选主成功后通过回调启动/停止定时任务
+使用外部库 `github.com/go-meridian/job` 管理定时任务。选主成功后通过 `WithOnLeader` 回调启动，`WithOnDemote` 停止。
 
 ## Elect 选主机制
 
-路径：`../../handler/electhandler`
-
-- 封装选主初始化，支持 **etcd** 和 **redis** 两种后端
-- 通过 blank import 注册后端：`_ "elect/etcd"` / `_ "elect/redis"`
-- 配置项：`config.yaml` 中的 `cfg.Elect`
-- 回调机制：
-  - `WithOnLeader` — 成为 Leader 时启动定时任务
-  - `WithOnDemote` — 失去 Leader 时停止任务
+路径：`handler/electhandler`，支持 etcd 和 redis 两种后端。通过 blank import 注册后端。
 
 ## Event 事件系统
-
-基于 job 管理器的事件总线：
 
 | 层 | 路径 | 职责 |
 |---|---|---|
 | model/eventmodel/ | 事件结构体定义 | `HealthEvent`、`TopicHealth` 等 |
-| handler/event/ | 事件处理函数 | `onHealth(evt)` 等 |
-
-事件结构体实现 `Topic()` 方法，通过事件总线订阅和分发。
+| handler/eventhandler/ | 事件处理函数 | `onHealth(evt)` 等 |

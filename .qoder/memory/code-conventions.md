@@ -15,9 +15,25 @@ return codeerror.SystemError.Msg(e.Error())
 llog.Error("xxx error! err[ %s ]", e.Error())
 ```
 
-## 日志
+## 日志模式
 
-使用 `zap` 结构化日志，禁止 `fmt.Println` 调试。日志中必须包含 `requestID` 字段。
+所有包统一使用包级 `var log *logger.Logger`，通过 `Init(l *logger.Logger)` 初始化。
+
+- 禁止将 log 作为函数参数传递
+- 禁止在结构体中持有 log 字段
+- 禁止 `fmt.Println` 调试
+- 日志中必须包含 `requestID` 或 `connId` 等链路标识
+
+```go
+// 标准模式
+package xxx
+
+var log *logger.Logger
+
+func Init(l *logger.Logger) {
+    log = l
+}
+```
 
 ## 常量
 

@@ -106,7 +106,7 @@ type WorkerPool struct {
     wg          sync.WaitGroup
 }
 
-// handler/nats/gatewaymodel.go
+// handler/nats/proto.go
 type subscription struct {
     name       string
     sub        *natsLib.Subscription
@@ -271,10 +271,10 @@ processMsg()
 nats:
   url: "nats://127.0.0.1:4222"
   queues:
-    - name: "gatewaymodel"
+    - name: "proto"
       streamName: "GATEWAY"
-      streamSubject: "gatewaymodel.request"
-      consumerName: "lobby-gatewaymodel"
+      streamSubject: "proto.request"
+      consumerName: "lobby-proto"
       handler: "RouteCmd"
       workerCount: 8
       batchSize: 16

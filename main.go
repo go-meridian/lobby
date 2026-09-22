@@ -15,7 +15,6 @@ import (
 	"github.com/go-meridian/lobby/config"
 	"github.com/go-meridian/lobby/dao"
 	"github.com/go-meridian/lobby/db"
-	"github.com/go-meridian/lobby/handler"
 	electhandler "github.com/go-meridian/lobby/handler/electhandler"
 	_ "github.com/go-meridian/lobby/handler/eventhandler"
 	httpHandler "github.com/go-meridian/lobby/handler/httphandler"
@@ -80,7 +79,6 @@ func main() {
 	defer elect.Close()
 
 	// ========== 3. Handler 层 ==========
-	handler.Init(log)
 	httpHandler.Init(log)
 	natsHandler.Init(mqClient, log)
 
@@ -90,8 +88,8 @@ func main() {
 	// ========== 5. 注册（init 自注册 + 显式注册） ==========
 	// cmd 注册：service/ping.go 等通过 init() 调用 handler.Register 自注册
 	// NATS 队列注册：handler/nats/init.go 通过 init() 自注册
-	if ce := natsHandler.Register(); ce != nil {
-		log.Fatal("natsHandler.Register error", logger.String("error", ce.Error()))
+	if ce := natsHandler.Start(); ce != nil {
+		log.Fatal("natsHandler.Start error", logger.String("error", ce.Error()))
 	}
 
 	// ========== 6. 启动 ==========

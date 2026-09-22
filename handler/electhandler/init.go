@@ -6,7 +6,11 @@ import (
 	"github.com/go-meridian/logger"
 )
 
-func Init(cfg *config.Config, log *logger.Logger) {
+var log *logger.Logger
+
+func Init(cfg *config.Config, l *logger.Logger) {
+	log = l
+
 	if err := elect.Init(cfg.Elect, log,
 		elect.WithOnLeader(func() {
 			log.Info("this instance is now the leader, starting leader-only tasks")
@@ -19,6 +23,4 @@ func Init(cfg *config.Config, log *logger.Logger) {
 	); err != nil {
 		log.Fatal("elect.Init error", logger.String("error", err.Error()))
 	}
-
-	return
 }

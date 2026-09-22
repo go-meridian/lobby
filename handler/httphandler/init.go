@@ -1,20 +1,31 @@
 package httphandler
 
-import "github.com/go-meridian/logger"
+import (
+	"github.com/go-meridian/logger"
+	"github.com/labstack/echo/v4"
+)
 
 var log *logger.Logger
 
-// Init 初始化 HTTP handler 层
+// Init 初始化 httphandler 层
 func Init(l *logger.Logger) {
 	log = l
 }
 
-// APIHandler HTTP API 处理器
-type APIHandler struct {
-	Logger *logger.Logger
-}
+// Register 注册 HTTP 路由和中间件
+func Register(e *echo.Echo) {
 
-// NewAPIHandler 创建 API 处理器
-func NewAPIHandler(log *logger.Logger) *APIHandler {
-	return &APIHandler{Logger: log}
+	// 中间件（按注册顺序执行：Recover → RequestID → RateLimit → AccessLog）
+	e.Use(Recover())
+	e.Use(RequestID)
+	e.Use(RateLimit())
+	e.Use(AccessLog())
+
+	// 路由注册
+	e.GET("/health", HandleHealthFunc())
+
+	log.Info("HTTP routes registered",
+		logger.String("GET", "/health"),
+		logger.String("POST", "/api/proto"),
+	)
 }
