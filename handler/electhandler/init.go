@@ -15,12 +15,22 @@ func Init(cfg *config.Config, l *logger.Logger) {
 		elect.WithOnLeader(func() {
 			log.Info("this instance is now the leader, starting leader-only tasks")
 			// 在这里启动仅 Leader 执行的定时任务
+			onLeader()
 		}),
 		elect.WithOnDemote(func() {
 			log.Info("this instance lost leadership, stopping leader-only tasks")
 			// 在这里停止定时任务
+			onDemote()
 		}),
 	); err != nil {
 		log.Fatal("elect.Init error", logger.String("error", err.Error()))
 	}
+}
+
+func onLeader() {
+
+}
+
+func onDemote() {
+
 }

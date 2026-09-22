@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-meridian/lobby/dao"
 	"github.com/go-meridian/lobby/db"
-	"github.com/go-meridian/lobby/handler/mqhandler"
 	"github.com/go-meridian/lobby/model/httpmodel"
+	"github.com/go-meridian/lobby/mq"
 	"github.com/go-meridian/logger"
 	"github.com/labstack/echo/v4"
 )
@@ -51,7 +51,6 @@ func HandleHealthFunc() echo.HandlerFunc {
 	}
 }
 
-// checkMongoDB 检查 MongoDB 连接
 func checkMongoDB() string {
 	if db.MDB == nil {
 		return "not initialized"
@@ -64,7 +63,6 @@ func checkMongoDB() string {
 	return "ok"
 }
 
-// checkRedis 检查 Redis 连接
 func checkRedis(ctx context.Context) string {
 	if dao.RDB == nil {
 		return "not initialized"
@@ -75,9 +73,8 @@ func checkRedis(ctx context.Context) string {
 	return "ok"
 }
 
-// checkNATS 检查 NATS 连接
 func checkNATS() string {
-	if !mqhandler.IsConnected() {
+	if !mq.IsConnected() {
 		return "unavailable"
 	}
 	return "ok"

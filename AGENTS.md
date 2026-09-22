@@ -21,9 +21,15 @@ Lobby 是游戏大厅业务服务，与 Gate（WebSocket 网关）组成完整�
 ```
 main.go
   ├── config/               配置加载 (viper)
-  ├── common/logger/        日志系统 (zap + 日志轮转)
   ├── db/                   MongoDB 连接
   ├── dao/                  Redis 缓存
+  │   ├── dao.go            Init()、Redis 客户端
+  │   └── cache.go          DBData 接口、FillDBInfo/SetDBInfo/DelDBInfo
+  ├── mq/                   MQ 基础设施
+  │   ├── init.go           client、log、Init()、IsConnected()
+  │   ├── publisher.go      Publisher、Publish()、GetPublisher()
+  │   ├── subscription.go   订阅注册表、RegisterCoreSubscription()、Start()
+  │   └── protocol.go       Handler 类型、handleMessage()
   ├── model/                结构体定义 + 方法
   │   ├── codeerror/        CodeError 错误码
   │   ├── proto/            Protobuf 生成文件
@@ -35,14 +41,18 @@ main.go
   │   ├── httpmodel/        HTTP API 请求/响应结构体
   │   └── eventmodel/       事件模型定义 (HealthEvent 等)
   ├── handler/              入口层
-  │   ├── mqhandler/        NATS 入口 (MsgId 路由 + 订阅管理)
-  │   │   ├── init.go       MQ 客户端、Publisher、handleMessage
-  │   │   ├── router.go     MsgHandler、Register、RouteMsg
-  │   │   └── register.go   订阅注册 + MsgId 处理函数注册
+  │   ├── mqhandler/        MsgId 路由 + handler 注册
+  │   │   ├── init.go       MsgHandler、Register()、RouteMsg()、Init()
+  │   │   └── health.go     heartbeatHandler
   │   ├── httphandler/      HTTP 入口
+  │   │   ├── init.go       Init()、Register()
+  │   │   ├── health.go     HandleHealthFunc()
+  │   │   ├── checks.go     checkMongoDB/checkRedis/checkNATS
+  │   │   └── middleware.go  RequestID/AccessLog/Recover/RateLimit
   │   ├── electhandler/     选主机制 (etcd/redis 后端)
   │   └── eventhandler/     事件处理 (health 等)
   └── service/              业务逻辑
+      └── init.go           Publisher 接口、Init()、GetPublisher()
 ```
 
 ### 分层职责
@@ -50,16 +60,17 @@ main.go
 | 层 | 职责 | 可依赖 |
 |---|---|---|
 | model/ | 结构体定义、方法、接口 | codeerror |
-| handler/ | 入口注册、MsgId 路由、中间件 | model, service |
+| mq/ | MQ 客户端、Publisher、订阅管理、协议编解码 | model/proto |
+| handler/ | MsgId 路由、HTTP 入口、中间件 | model, mq |
 | service/ | 业务逻辑函数 | model |
 | db/dao | 基础设施封装 | config, model/codeerror |
 
 ### 依赖方向
 
 ```
-config ← logger ← db/dao ← model ← handler/mqhandler ← main
-                              ↑
-                          service ← handler/mqhandler
+config ← logger ← db/dao ← model ← mq ← handler/mqhandler ← main
+                             ↑                ↑
+                         service ←────────────┘
 ```
 
 ## Protobuf 工作流
@@ -101,10 +112,10 @@ Gate 与 Lobby 之间使用 Protobuf 二进制通信：
 ### 路由流程
 
 ```
-NATS 消息 → handleMessage (proto.Unmarshal GateRequest)
-  → RouteMsg (根据 msgId 查找 msgRegistry)
+NATS 消息 → mq.handleMessage (proto.Unmarshal GateRequest)
+  → mqhandler.RouteMsg (根据 msgId 查找 msgRegistry)
     → MsgHandler (service 业务处理)
-      → handleMessage 构造 GateResponse (proto.Marshal) → ReplyTo
+      → mq.handleMessage 构造 GateResponse (proto.Marshal) → ReplyTo
 ```
 
 ## 注册模式
@@ -112,11 +123,16 @@ NATS 消息 → handleMessage (proto.Unmarshal GateRequest)
 ### MsgId 注册
 
 ```go
-// handler/mqhandler/register.go
-func init() {
-    RegisterCoreSubscription("gate2lobby.*", RouteMsg, 8)
-    RegisterPublishStream("LOBBY2GATE", "lobby2gate")
-    Register(uint32(packet.MsgId_MSG_HEARTBEAT_REQ), heartbeatService)
+// handler/mqhandler/init.go
+func Init(l *logger.Logger) {
+    log = l
+    mq.RegisterCoreSubscription("gate2lobby.*", RouteMsg, 8)
+    mq.RegisterPublishStream("LOBBY2GATE", "lobby2gate")
+    register()
+}
+
+func register() {
+    Register(uint32(packet.MsgId_MSG_HEARTBEAT_REQ), heartbeatHandler)
 }
 ```
 
@@ -158,18 +174,18 @@ db.Init(cfg)
 dao.Init(cfg)
 
 // 3. MQ 客户端
-mqClient, _ := mq.NewClient(mqCfg)
+mqClient, _ := mqLib.NewClient(mqCfg)
 
-// 4. Handler 层
+// 4. MQ + Handler 层（顺序重要：mq.Init 先于 mqhandler.Init）
+mq.Init(mqClient, log)        // MQ 基础设施
+mqhandler.Init(log)            // 注册订阅 + MsgId handler
 httpHandler.Init(log)
-natsHandler.Init(mqClient, log)
-electhandler.Init(cfg, log)
 
 // 5. Service 层
-service.Init(log, natsHandler.GetPublisher())
+service.Init(log, mq.GetPublisher())
 
 // 6. 启动订阅
-natsHandler.Start()
+mq.Start()
 
 // 7. 启动 HTTP
 httpHandler.Register(e)
@@ -254,7 +270,7 @@ go vet ./...
 
 1. proto 项目定义 .proto 消息 + MsgId 枚举
 2. 复制 .pb.go 到 `model/proto/`，修复 import 路径
-3. 在 `handler/mqhandler/register.go` 的 `init()` 中调用 `Register(msgId, handler)`
+3. 在 `handler/mqhandler/init.go` 的 `register()` 中调用 `Register(msgId, handler)`
 4. handler 签名：`func(connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError)`
 
 ### 新增 HTTP 路由

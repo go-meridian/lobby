@@ -111,7 +111,7 @@ NATS 消息 → handleMessage (proto.Unmarshal GateRequest)
 ### MsgId 注册
 
 ```go
-// handler/mqhandler/register.go
+// handler/mqhandler/init.go
 func init() {
     RegisterCoreSubscription("gate2lobby.*", RouteMsg, 8)
     RegisterPublishStream("LOBBY2GATE", "lobby2gate")
@@ -123,7 +123,7 @@ func init() {
 
 1. 在 proto 项目定义 .proto 消息 + MsgId 枚举
 2. 复制 .pb.go 到 `model/proto/`
-3. 在 `handler/mqhandler/register.go` 的 `init()` 中调用 `Register(msgId, handler)`
+3. 在 `../../handler/mqhandler/init.go` 的 `init()` 中调用 `Register(msgId, handler)`
 4. handler 函数签名：`func(connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError)`
 
 ## HTTP Handler 模式

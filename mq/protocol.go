@@ -1,18 +1,14 @@
-package mqhandler
+package mq
 
 import (
 	"sync/atomic"
 
-	"github.com/go-meridian/lobby/model/codeerror"
 	"github.com/go-meridian/lobby/model/proto/common"
 	"github.com/go-meridian/lobby/model/proto/gate"
 	"github.com/go-meridian/logger"
-	"github.com/go-meridian/mq"
+	mqLib "github.com/go-meridian/mq"
 	"google.golang.org/protobuf/proto"
 )
-
-// MQHandler MQ 消息处理函数签名（含 msgId 用于路由）
-type MQHandler func(connId uint64, requestId uint64, msgId uint32, payload []byte) ([]byte, *codeerror.CodeError)
 
 // natsReqIDCounter NATS 请求 ID 计数器
 var natsReqIDCounter uint64
@@ -23,8 +19,7 @@ func generateNatsRequestID() uint64 {
 }
 
 // handleMessage 解析 Protobuf 消息并路由到对应 handler
-func handleMessage(msg mq.Message, routeHandler MQHandler) {
-	// 解析 GateRequest protobuf
+func handleMessage(msg mqLib.Message, routeHandler Handler) {
 	var req gate.GateRequest
 	if err := proto.Unmarshal(msg.Data(), &req); err != nil {
 		log.Error("MQ GateRequest unmarshal error",
@@ -39,10 +34,8 @@ func handleMessage(msg mq.Message, routeHandler MQHandler) {
 		requestId = generateNatsRequestID()
 	}
 
-	// 路由到对应 handler
 	payload, ce := routeHandler(req.ConnId, requestId, req.MsgId, req.Payload)
 
-	// 构造 GateResponse
 	resp := &gate.GateResponse{
 		ConnId:    req.ConnId,
 		RequestId: requestId,
@@ -50,7 +43,6 @@ func handleMessage(msg mq.Message, routeHandler MQHandler) {
 	}
 
 	if ce != nil {
-		// 构造错误的 ErrMsg 放入 payload
 		errMsg := &common.ErrMsg{
 			RetCode: int32(ce.GetCode()),
 			ErrMsg:  ce.Error(),
@@ -61,7 +53,6 @@ func handleMessage(msg mq.Message, routeHandler MQHandler) {
 		resp.Payload = payload
 	}
 
-	// 回写响应（Request/Reply 模式）
 	replyTo := msg.ReplyTo()
 	if replyTo == "" {
 		return

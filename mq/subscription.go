@@ -1,15 +1,18 @@
-package mqhandler
+package mq
 
 import (
 	"github.com/go-meridian/lobby/model/codeerror"
 	"github.com/go-meridian/logger"
-	"github.com/go-meridian/mq"
+	mqLib "github.com/go-meridian/mq"
 )
+
+// Handler MQ 消息处理函数签名（含 msgId 用于路由）
+type Handler func(connId uint64, requestId uint64, msgId uint32, payload []byte) ([]byte, *codeerror.CodeError)
 
 // coreSubscriptionEntry Core NATS 订阅注册
 type coreSubscriptionEntry struct {
 	subject     string
-	handler     MQHandler
+	handler     Handler
 	workerCount int
 }
 
@@ -26,7 +29,7 @@ type publishStreamEntry struct {
 var publishStreamRegistry []publishStreamEntry
 
 // RegisterCoreSubscription 注册 MQ Core 订阅
-func RegisterCoreSubscription(subject string, h MQHandler, workerCount int) {
+func RegisterCoreSubscription(subject string, h Handler, workerCount int) {
 	coreSubscriptionRegistry = append(coreSubscriptionRegistry, coreSubscriptionEntry{
 		subject:     subject,
 		handler:     h,
@@ -58,7 +61,7 @@ func GetRegisteredSubscriptions() []string {
 func Start() *codeerror.CodeError {
 	for _, entry := range coreSubscriptionRegistry {
 		localEntry := entry
-		_, ce := client.Subscribe(localEntry.subject, func(msg mq.Message) {
+		_, ce := client.Subscribe(localEntry.subject, func(msg mqLib.Message) {
 			handleMessage(msg, localEntry.handler)
 		})
 		if ce != nil {
@@ -72,7 +75,7 @@ func Start() *codeerror.CodeError {
 
 	if len(publishStreamRegistry) > 0 {
 		ps := publishStreamRegistry[0]
-		publisher = &mqPublisher{
+		publisher = &Publisher{
 			client:  client,
 			subject: ps.streamSubject,
 		}

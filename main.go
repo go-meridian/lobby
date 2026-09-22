@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -15,13 +16,14 @@ import (
 	"github.com/go-meridian/lobby/config"
 	"github.com/go-meridian/lobby/dao"
 	"github.com/go-meridian/lobby/db"
-	electhandler "github.com/go-meridian/lobby/handler/electhandler"
-	_ "github.com/go-meridian/lobby/handler/eventhandler"
-	httpHandler "github.com/go-meridian/lobby/handler/httphandler"
-	natsHandler "github.com/go-meridian/lobby/handler/mqhandler"
+	"github.com/go-meridian/lobby/handler/electhandler"
+	"github.com/go-meridian/lobby/handler/eventhandler"
+	"github.com/go-meridian/lobby/handler/httphandler"
+	"github.com/go-meridian/lobby/handler/mqhandler"
+	"github.com/go-meridian/lobby/mq"
 	"github.com/go-meridian/lobby/service"
 	"github.com/go-meridian/logger"
-	"github.com/go-meridian/mq"
+	mqLib "github.com/go-meridian/mq"
 	"github.com/labstack/echo/v4"
 )
 
@@ -32,7 +34,6 @@ func main() {
 		panic("config.Init error: " + ce.Error())
 	}
 
-	// 初始化 logger
 	logCfg := &logger.Config{
 		Level:   cfg.Log.Level,
 		LogFile: cfg.Log.LogFile,
@@ -45,57 +46,51 @@ func main() {
 		panic("logger.Init error: " + err.Error())
 	}
 	defer logger.Close()
-
 	log := logger.L()
 
-	// 初始化 jobmgr
 	job.Init(nil)
-
-	// 初始化事件总线
 	event.Init(job.Mgr())
 
 	// ========== 2. 存储层 ==========
 	if ce := db.Init(cfg); ce != nil {
 		log.Fatal("db.Init error", logger.String("error", ce.Error()))
 	}
-
 	if ce := dao.Init(cfg); ce != nil {
 		log.Fatal("dao.Init error", logger.String("error", ce.Error()))
 	}
 
-	// 创建 MQ 客户端
-	mqCfg := &mq.Config{
-		Mode: mq.ModeNATS,
-		NATS: &mq.NATSConfig{URL: cfg.NATS.URL},
+	mqCfg := &mqLib.Config{
+		Mode: mqLib.ModeNATS,
+		NATS: &mqLib.NATSConfig{URL: cfg.NATS.URL},
 	}
-	mqClient, err := mq.NewClient(mqCfg)
+	mqClient, err := mqLib.NewClient(mqCfg)
 	if err != nil {
 		log.Fatal("mq.NewClient error", logger.Error(err))
 	}
 	defer mqClient.Close()
 
-	// ========== 2.5 选主 ==========
+	// ========== 3. Handler 层 ==========
+	mq.Init(mqClient, log)
+	mqhandler.Init(log)
+	httphandler.Init(log)
+	eventhandler.Init(log)
 	electhandler.Init(cfg, log)
 	defer elect.Close()
 
-	// ========== 3. Handler 层 ==========
-	httpHandler.Init(log)
-	natsHandler.Init(mqClient, log)
-
 	// ========== 4. Service 层 ==========
-	service.Init(log, natsHandler.GetPublisher())
+	service.Init(log, mq.GetPublisher())
 
-	// ========== 5. 注册（init 自注册 + 显式注册） ==========
-	// cmd 注册：service/ping.go 等通过 init() 调用 handler.Register 自注册
-	// NATS 队列注册：handler/nats/init.go 通过 init() 自注册
-	if ce := natsHandler.Start(); ce != nil {
-		log.Fatal("natsHandler.Start error", logger.String("error", ce.Error()))
+	// ========== 5. 注册与启动 ==========
+	if ce := mq.Start(); ce != nil {
+		log.Fatal("mq.Start error", logger.String("error", ce.Error()))
 	}
 
-	// ========== 6. 启动 ==========
+	mqhandler.Register()
 	e := echo.New()
-	httpHandler.Register(e)
+	httphandler.Register(e)
+	eventhandler.Register()
 
+	// ========== 6. 运行 ==========
 	addr := fmt.Sprintf(":%d", cfg.Server.HTTPPort)
 	log.Info("Lobby server started successfully", logger.String("addr", addr))
 
@@ -112,6 +107,11 @@ func main() {
 	<-quit
 	log.Info("Shutting down...")
 
-	// 等待所有 job 完成
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		log.Error("HTTP server shutdown error", logger.Error(err))
+	}
 	job.Mgr().StopAll(10 * time.Second)
+	log.Info("Server exited")
 }
