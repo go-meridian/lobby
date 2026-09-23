@@ -65,7 +65,12 @@ func Start() *codeerror.CodeError {
 			handleMessage(msg, localEntry.handler)
 		})
 		if ce != nil {
-			return codeerror.SystemError.Msg("MQ subscribe error: " + ce.Error())
+			err := codeerror.SystemError.Msg("MQ subscribe error: " + ce.Error())
+			log.Error("MQ subscription failed",
+				logger.String("subject", localEntry.subject),
+				logger.String("error", err.Error()),
+			)
+			return err
 		}
 		log.Info("MQ subscription registered",
 			logger.String("subject", localEntry.subject),

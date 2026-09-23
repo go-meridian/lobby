@@ -9,6 +9,8 @@ nats:
 log:
   level: "info"
   logFile: "lobby"
+  errorFile: "lobby_error"
+  logDir: "logs"
   maxSize: 500    # 单文件最大 MB
   maxAge: 30      # 旧日志保留天数
 

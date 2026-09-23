@@ -7,12 +7,13 @@ require (
 	github.com/go-meridian/elect v1.0.1
 	github.com/go-meridian/event v1.0.1
 	github.com/go-meridian/job v1.0.2
-	github.com/go-meridian/logger v1.0.2
+	github.com/go-meridian/logger v1.0.3
 	github.com/go-meridian/mq v1.0.3
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/spf13/viper v1.19.0
 	go.mongodb.org/mongo-driver/v2 v2.9.1
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
@@ -60,7 +61,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20260414002931-afd174a4e478 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260414002931-afd174a4e478 // indirect
 	google.golang.org/grpc v1.82.1 // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

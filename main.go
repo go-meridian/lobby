@@ -35,11 +35,12 @@ func main() {
 	}
 
 	logCfg := &logger.Config{
-		Level:   cfg.Log.Level,
-		LogFile: cfg.Log.LogFile,
-		LogDir:  "logs",
-		MaxSize: cfg.Log.MaxSize,
-		MaxAge:  cfg.Log.MaxAge,
+		Level:     cfg.Log.Level,
+		LogFile:   cfg.Log.LogFile,
+		ErrorFile: cfg.Log.ErrorFile,
+		LogDir:    cfg.Log.LogDir,
+		MaxSize:   cfg.Log.MaxSize,
+		MaxAge:    cfg.Log.MaxAge,
 	}
 	_, err := logger.Init(logCfg)
 	if err != nil {

@@ -2,14 +2,25 @@ package logger
 
 import (
 	"fmt"
+	"sync"
+	"sync/atomic"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-var log *zap.Logger
+var (
+	logValue  atomic.Value // 无锁读取 *zap.Logger，永不返回 nil
+	mainW     *LogWriter   // 主日志写入器，用于 Close
+	errW      *LogWriter   // 错误日志写入器，用于 Close（可能为 nil）
+	closeOnce sync.Once    // 保证 Close 幂等
+)
 
-// Init 初始化全局日志
+func init() {
+	logValue.Store(zap.NewNop())
+}
+
+// Init 初始化全局日志，仅可调用一次，重复调用会泄漏前一次的日志文件句柄
 func Init(cfg *Config) (*zap.Logger, error) {
 	if cfg.LogDir == "" {
 		cfg.LogDir = "logs"
@@ -27,19 +38,44 @@ func Init(cfg *Config) (*zap.Logger, error) {
 	}
 	encoderConfig.Level = zap.NewAtomicLevelAt(logLevel)
 
-	output, err := NewLogWriter(cfg.LogDir, cfg.LogFile, cfg.MaxSize, cfg.MaxAge)
+	mainWriter, err := NewLogWriter(cfg.LogDir, cfg.LogFile, cfg.MaxSize, cfg.MaxAge)
 	if err != nil {
-		return nil, fmt.Errorf("create log writer error: %w", err)
+		return nil, fmt.Errorf("create main log writer error: %w", err)
 	}
 
-	core := zapcore.NewCore(
+	mainCore := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(encoderConfig.EncoderConfig),
-		zapcore.AddSync(output),
+		zapcore.AddSync(mainWriter),
 		encoderConfig.Level,
 	)
 
-	log = zap.New(core)
-	return log, nil
+	var newLog *zap.Logger
+	if cfg.ErrorFile != "" {
+		errorWriter, err := NewLogWriter(cfg.LogDir, cfg.ErrorFile, cfg.MaxSize, cfg.MaxAge)
+		if err != nil {
+			mainWriter.Close()
+			return nil, fmt.Errorf("create error log writer error: %w", err)
+		}
+
+		errorLevelEnabler := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+			return lvl >= zapcore.ErrorLevel
+		})
+
+		errorCore := zapcore.NewCore(
+			zapcore.NewConsoleEncoder(encoderConfig.EncoderConfig),
+			zapcore.AddSync(errorWriter),
+			errorLevelEnabler,
+		)
+
+		errW = errorWriter
+		newLog = zap.New(zapcore.NewTee(mainCore, errorCore))
+	} else {
+		newLog = zap.New(mainCore)
+	}
+
+	mainW = mainWriter
+	logValue.Store(newLog)
+	return newLog, nil
 }
 
 // InitWithDefault 使用默认配置初始化
@@ -47,14 +83,23 @@ func InitWithDefault(logFile string) (*zap.Logger, error) {
 	return Init(DefaultConfig(logFile))
 }
 
-// Get 获取全局日志实例
+// Get 获取全局日志实例（无锁原子读取，永不返回 nil）
 func Get() *zap.Logger {
-	return log
+	return logValue.Load().(*zap.Logger)
 }
 
-// Close 关闭日志
+// Close 刷新日志缓冲区并关闭所有日志文件（幂等，多次调用安全）
 func Close() {
-	if log != nil {
-		log.Sync()
-	}
+	closeOnce.Do(func() {
+		if l, ok := logValue.Load().(*zap.Logger); ok && l != nil {
+			l.Sync()
+		}
+		if mainW != nil {
+			mainW.Close()
+		}
+		if errW != nil {
+			errW.Close()
+		}
+		logValue.Store(zap.NewNop())
+	})
 }

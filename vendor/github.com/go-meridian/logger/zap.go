@@ -12,9 +12,9 @@ func Wrap(zl *zap.Logger) *Logger {
 	return &Logger{zl: zl}
 }
 
-// L 获取全局 Logger 实例
+// L 获取全局 Logger 实例（通过 atomic.Value 无锁读取）
 func L() *Logger {
-	return &Logger{zl: log}
+	return &Logger{zl: Get()}
 }
 
 // With 添加字段，返回新的 Logger

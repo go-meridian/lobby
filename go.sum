@@ -30,8 +30,8 @@ github.com/go-meridian/event v1.0.1 h1:2RDnWTB0FuGoZxcsD33U4L408iIDjcPoSjwTnYYx2
 github.com/go-meridian/event v1.0.1/go.mod h1:jRIrpmbMJw8zWT4S60PfXbx8Dze+KG5XcZLa1xV+BX8=
 github.com/go-meridian/job v1.0.2 h1:sclaRyWRO7UUcIXo+7wbAzhcpILXWbEJ7fk1lW9W014=
 github.com/go-meridian/job v1.0.2/go.mod h1:K5VB8sZavtv2ZucbsvKKyKBBwXT13cGlFF6ZC5Hq4Q8=
-github.com/go-meridian/logger v1.0.2 h1:hIVsI5T70MY7eXI5ypygJi+kd6C9HeSFqkhCecdk49c=
-github.com/go-meridian/logger v1.0.2/go.mod h1:FKH61zxL82WFhuG/mON3HNHQcNHybypvHrOC6JARjDE=
+github.com/go-meridian/logger v1.0.3 h1:x2tLZx4ILeEHm2j98WJpghSnQu9E2UErgf38Y/4Ox0I=
+github.com/go-meridian/logger v1.0.3/go.mod h1:FKH61zxL82WFhuG/mON3HNHQcNHybypvHrOC6JARjDE=
 github.com/go-meridian/mq v1.0.3 h1:TSgWAQSVmkOcIGDzzC7+yfjLq4DbCCOLI6EqYJVG+Lw=
 github.com/go-meridian/mq v1.0.3/go.mod h1:h3eZBG8kp8TJ5b7TyEZxvmO0GoLlTikIPRjs9b3v/Ns=
 github.com/golang-jwt/jwt v3.2.2+incompatible h1:IfV12K8xAKAnZqdXVzCZ+TOjboZ2keLg81eXfW3O+oY=

@@ -10,7 +10,6 @@ var log *logger.Logger
 
 func Init(l *logger.Logger) {
 	log = l
-
 }
 
 func Register() {

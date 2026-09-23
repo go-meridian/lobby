@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -22,7 +23,11 @@ type LogWriter struct {
 	curDate string
 	curSize int64
 	curSeq  int
+	active  bool // 是否处于活跃状态
 }
+
+// 编译期接口检查
+var _ io.Writer = (*LogWriter)(nil)
 
 // NewLogWriter 创建日志写入器
 func NewLogWriter(dir, prefix string, maxSizeMB, maxAge int) (*LogWriter, error) {
@@ -42,40 +47,50 @@ func NewLogWriter(dir, prefix string, maxSizeMB, maxAge int) (*LogWriter, error)
 		prefix:  prefix,
 		maxSize: int64(maxSizeMB) * 1024 * 1024,
 		maxAge:  maxAge,
+		active:  true,
 	}
 
-	if err := w.openNew(); err != nil {
+	if err := w.openNew(true); err != nil {
 		return nil, err
 	}
 	return w, nil
 }
 
-// Write 实现 io.Writer 接口
+// Write 实现 io.Writer 接口，支持日期轮转和大小轮转
 func (w *LogWriter) Write(p []byte) (n int, err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
+	if !w.active {
+		return 0, fmt.Errorf("log writer closed")
+	}
+
 	today := time.Now().Format("20060102")
+
+	// 上次写入失败导致文件不可用，尝试重新打开
+	if w.file == nil {
+		if err := w.openNew(false); err != nil {
+			return 0, err
+		}
+	}
 
 	// 日期轮转
 	if today != w.curDate {
-		if w.file != nil {
-			w.file.Close()
-		}
+		w.file.Close()
 		w.curDate = today
 		w.curSeq = 0
-		if err := w.openNew(); err != nil {
+		if err := w.openNew(true); err != nil {
+			w.file = nil
 			return 0, err
 		}
 	}
 
 	// 大小轮转
 	if w.curSize+int64(len(p)) > w.maxSize {
-		if w.file != nil {
-			w.file.Close()
-		}
+		w.file.Close()
 		w.curSeq++
-		if err := w.openNew(); err != nil {
+		if err := w.openNew(false); err != nil {
+			w.file = nil
 			return 0, err
 		}
 	}
@@ -89,16 +104,21 @@ func (w *LogWriter) Write(p []byte) (n int, err error) {
 func (w *LogWriter) Close() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	w.active = false
 	if w.file != nil {
-		return w.file.Close()
+		err := w.file.Close()
+		w.file = nil
+		return err
 	}
 	return nil
 }
 
-func (w *LogWriter) openNew() error {
-	seq := w.findMaxSeq(w.curDate)
-	if w.curSeq == 0 {
-		w.curSeq = seq + 1
+func (w *LogWriter) openNew(allowScan bool) error {
+	if allowScan {
+		seq := w.findMaxSeq(w.curDate)
+		if w.curSeq == 0 {
+			w.curSeq = seq + 1
+		}
 	}
 
 	filename := filepath.Join(w.dir, fmt.Sprintf("%s.%s.%d", w.prefix, w.curDate, w.curSeq))
@@ -108,14 +128,17 @@ func (w *LogWriter) openNew() error {
 	}
 
 	w.file = f
-	info, _ := f.Stat()
-	if info != nil {
-		w.curSize = info.Size()
-	} else {
+	info, err := f.Stat()
+	if err != nil {
 		w.curSize = 0
+	} else {
+		w.curSize = info.Size()
 	}
 
-	w.cleanOldFiles()
+	// 仅在日期轮转或初始化时清理旧文件，避免大小轮转时无谓扫描目录
+	if allowScan {
+		w.cleanOldFiles()
+	}
 	return nil
 }
 

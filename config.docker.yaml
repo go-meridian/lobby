@@ -10,6 +10,8 @@ nats:
 log:
   level: "info"
   logFile: "lobby"
+  errorFile: "lobby_error"
+  logDir: "logs"
   maxSize: 500
   maxAge: 30
 

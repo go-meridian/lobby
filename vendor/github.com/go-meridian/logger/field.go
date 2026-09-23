@@ -116,12 +116,12 @@ func Duration(key string, val time.Duration) Field {
 // ==================== 复合类型字段 ====================
 
 // Any 根据值类型自动选择最佳字段构造方式
-func Any(key string, val interface{}) Field {
+func Any(key string, val any) Field {
 	return zap.Any(key, val)
 }
 
 // Reflect 使用反射构造字段，适用于任意类型
-func Reflect(key string, val interface{}) Field {
+func Reflect(key string, val any) Field {
 	return zap.Reflect(key, val)
 }
 

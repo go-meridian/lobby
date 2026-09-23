@@ -15,10 +15,12 @@ type ServerConfig struct {
 }
 
 type LogConfig struct {
-	Level   string `json:"level" yaml:"level"`
-	LogFile string `json:"logFile" yaml:"logFile"`
-	MaxSize int    `json:"maxSize" yaml:"maxSize"`
-	MaxAge  int    `json:"maxAge" yaml:"maxAge"`
+	Level     string `json:"level" yaml:"level"`
+	LogFile   string `json:"logFile" yaml:"logFile"`
+	ErrorFile string `json:"errorFile" yaml:"errorFile"`
+	LogDir    string `json:"logDir" yaml:"logDir"`
+	MaxSize   int    `json:"maxSize" yaml:"maxSize"`
+	MaxAge    int    `json:"maxAge" yaml:"maxAge"`
 }
 
 type MongoConfig struct {
@@ -53,12 +55,12 @@ type NATSConfig struct {
 }
 
 type Config struct {
-	Server *ServerConfig  `json:"server" yaml:"server"`
-	Log    *LogConfig     `json:"log" yaml:"log"`
-	Mongo  *MongoConfig   `json:"mongo" yaml:"mongo"`
-	Redis  *RedisConfig   `json:"redis" yaml:"redis"`
-	NATS   *NATSConfig    `json:"nats" yaml:"nats"`
-	Elect  *elect.Config  `json:"elect,omitempty" yaml:"elect,omitempty"`
+	Server *ServerConfig `json:"server" yaml:"server"`
+	Log    *LogConfig    `json:"log" yaml:"log"`
+	Mongo  *MongoConfig  `json:"mongo" yaml:"mongo"`
+	Redis  *RedisConfig  `json:"redis" yaml:"redis"`
+	NATS   *NATSConfig   `json:"nats" yaml:"nats"`
+	Elect  *elect.Config `json:"elect,omitempty" yaml:"elect,omitempty"`
 }
 
 // Init 初始化配置
