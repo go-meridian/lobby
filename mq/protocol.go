@@ -1,6 +1,8 @@
 package mq
 
 import (
+	"context"
+	"strconv"
 	"sync/atomic"
 
 	"github.com/go-meridian/lobby/model/proto/common"
@@ -22,7 +24,7 @@ func generateNatsRequestID() uint64 {
 func handleMessage(msg mqLib.Message, routeHandler Handler) {
 	var req gate.GateRequest
 	if err := proto.Unmarshal(msg.Data(), &req); err != nil {
-		log.Error("MQ GateRequest unmarshal error",
+		log.ErrorCtx(context.Background(), "MQ GateRequest unmarshal error",
 			logger.String("subject", msg.Subject()),
 			logger.Error(err),
 		)
@@ -34,7 +36,9 @@ func handleMessage(msg mqLib.Message, routeHandler Handler) {
 		requestId = generateNatsRequestID()
 	}
 
-	payload, ce := routeHandler(req.ConnId, requestId, req.MsgId, req.Payload)
+	ctx := logger.WithRequestId(context.Background(), strconv.FormatUint(requestId, 10))
+
+	payload, ce := routeHandler(ctx, req.ConnId, requestId, req.MsgId, req.Payload)
 
 	resp := &gate.GateResponse{
 		ConnId:    req.ConnId,
@@ -60,16 +64,14 @@ func handleMessage(msg mqLib.Message, routeHandler Handler) {
 
 	respBytes, err := proto.Marshal(resp)
 	if err != nil {
-		log.Error("MQ GateResponse marshal error",
-			logger.Uint64("requestId", requestId),
+		log.ErrorCtx(ctx, "MQ GateResponse marshal error",
 			logger.Error(err),
 		)
 		return
 	}
 
 	if ce := client.Publish(replyTo, respBytes); ce != nil {
-		log.Error("MQ response publish error",
-			logger.Uint64("requestId", requestId),
+		log.ErrorCtx(ctx, "MQ response publish error",
 			logger.String("replyTo", replyTo),
 			logger.String("error", ce.Error()),
 		)

@@ -64,7 +64,7 @@ func Init(cfg *config.Config) *codeerror.CodeError {
 		RDB = client
 	}
 
-	logger.L().Info("Redis connected",
+	logger.L().InfoCtx(context.Background(), "Redis connected",
 		logger.String("addr", addr),
 		logger.Int("db", cfg.Redis.DB),
 		logger.Int("poolSize", poolSize),

@@ -1,13 +1,15 @@
 package mq
 
 import (
+	"context"
+
 	"github.com/go-meridian/lobby/model/codeerror"
 	"github.com/go-meridian/logger"
 	mqLib "github.com/go-meridian/mq"
 )
 
 // Handler MQ 消息处理函数签名（含 msgId 用于路由）
-type Handler func(connId uint64, requestId uint64, msgId uint32, payload []byte) ([]byte, *codeerror.CodeError)
+type Handler func(ctx context.Context, connId uint64, requestId uint64, msgId uint32, payload []byte) ([]byte, *codeerror.CodeError)
 
 // coreSubscriptionEntry Core NATS 订阅注册
 type coreSubscriptionEntry struct {
@@ -19,14 +21,17 @@ type coreSubscriptionEntry struct {
 // coreSubscriptionRegistry Core NATS 订阅注册表
 var coreSubscriptionRegistry []coreSubscriptionEntry
 
-// publishStreamEntry 发送端 Stream 注册
-type publishStreamEntry struct {
-	streamName    string
-	streamSubject string
+// activeSubscription 运行时已激活的订阅状态
+type activeSubscription struct {
+	sub  mqLib.Subscription
+	pool *mqLib.WorkerPool
 }
 
-// publishStreamRegistry 发送端 Stream 注册表
-var publishStreamRegistry []publishStreamEntry
+// activeSubscriptions 运行时已激活的订阅（用于优雅关闭）
+var activeSubscriptions []activeSubscription
+
+// publishStreamRegistry 发送端 Stream 主题注册表
+var publishStreamRegistry []string
 
 // RegisterCoreSubscription 注册 MQ Core 订阅
 func RegisterCoreSubscription(subject string, h Handler, workerCount int) {
@@ -37,12 +42,9 @@ func RegisterCoreSubscription(subject string, h Handler, workerCount int) {
 	})
 }
 
-// RegisterPublishStream 注册 MQ 发送 Stream
-func RegisterPublishStream(streamName, streamSubject string) {
-	publishStreamRegistry = append(publishStreamRegistry, publishStreamEntry{
-		streamName:    streamName,
-		streamSubject: streamSubject,
-	})
+// RegisterPublishStream 注册 MQ 发送 Stream 主题
+func RegisterPublishStream(streamSubject string) {
+	publishStreamRegistry = append(publishStreamRegistry, streamSubject)
 }
 
 // GetRegisteredSubscriptions 获取已注册的订阅信息（用于启动日志）
@@ -51,44 +53,66 @@ func GetRegisteredSubscriptions() []string {
 	for _, entry := range coreSubscriptionRegistry {
 		result = append(result, entry.subject)
 	}
-	for _, entry := range publishStreamRegistry {
-		result = append(result, entry.streamSubject+".{msgId} (publish)")
+	for _, subject := range publishStreamRegistry {
+		result = append(result, subject+".{msgId} (publish)")
 	}
 	return result
 }
 
 // Start 启动所有已注册的订阅和发送 Stream
 func Start() *codeerror.CodeError {
-	for _, entry := range coreSubscriptionRegistry {
-		localEntry := entry
-		_, ce := client.Subscribe(localEntry.subject, func(msg mqLib.Message) {
-			handleMessage(msg, localEntry.handler)
+	for i := range coreSubscriptionRegistry {
+		entry := &coreSubscriptionRegistry[i]
+
+		pool := mqLib.NewWorkerPool(entry.workerCount, func(msg mqLib.Message) {
+			handleMessage(msg, entry.handler)
 		})
+		pool.Start()
+
+		sub, ce := client.Subscribe(entry.subject, pool.Submit)
 		if ce != nil {
+			pool.Stop()
 			err := codeerror.SystemError.Msg("MQ subscribe error: " + ce.Error())
-			log.Error("MQ subscription failed",
-				logger.String("subject", localEntry.subject),
+			log.ErrorCtx(context.Background(), "MQ subscription failed",
+				logger.String("subject", entry.subject),
 				logger.String("error", err.Error()),
 			)
 			return err
 		}
-		log.Info("MQ subscription registered",
-			logger.String("subject", localEntry.subject),
-			logger.Int("workers", localEntry.workerCount),
+
+		activeSubscriptions = append(activeSubscriptions, activeSubscription{sub: sub, pool: pool})
+		log.InfoCtx(context.Background(), "MQ subscription registered",
+			logger.String("subject", entry.subject),
+			logger.Int("workers", entry.workerCount),
 		)
 	}
 
 	if len(publishStreamRegistry) > 0 {
-		ps := publishStreamRegistry[0]
+		subject := publishStreamRegistry[0]
 		publisher = &Publisher{
 			client:  client,
-			subject: ps.streamSubject,
+			subject: subject,
 		}
-		log.Info("MQ publish stream registered",
-			logger.String("stream", ps.streamName),
-			logger.String("subject", ps.streamSubject+".{msgId}"),
+		log.InfoCtx(context.Background(), "MQ publish stream registered",
+			logger.String("subject", subject+".{msgId}"),
 		)
 	}
 
 	return nil
+}
+
+// Stop 停止所有订阅和 worker pool（优雅关闭）
+func Stop() {
+	for i := range activeSubscriptions {
+		entry := &activeSubscriptions[i]
+		if entry.sub != nil {
+			if err := entry.sub.Unsubscribe(); err != nil {
+				log.ErrorCtx(context.Background(), "MQ unsubscribe error", logger.String("error", err.Error()))
+			}
+		}
+		if entry.pool != nil {
+			entry.pool.Stop()
+		}
+	}
+	activeSubscriptions = nil
 }

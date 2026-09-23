@@ -42,7 +42,7 @@ func HandleHealthFunc() echo.HandlerFunc {
 			resp.Checks = checks
 		}
 
-		log.Info("Health check response", logger.Any("response", resp))
+		log.InfoCtx(c.Request().Context(), "Health check response", logger.Any("response", resp))
 
 		if status == "ok" {
 			return c.JSON(http.StatusOK, resp)

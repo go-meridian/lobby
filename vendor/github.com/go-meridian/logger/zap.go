@@ -1,6 +1,10 @@
 package logger
 
-import "go.uber.org/zap"
+import (
+	"context"
+
+	"go.uber.org/zap"
+)
 
 // Logger 封装 zap.Logger，提供常用的日志方法
 type Logger struct {
@@ -50,6 +54,36 @@ func (l *Logger) Fatal(msg string, fields ...Field) {
 // DPanic 在开发环境下 panic，生产环境下记录 error
 func (l *Logger) DPanic(msg string, fields ...Field) {
 	l.zl.DPanic(msg, fields...)
+}
+
+// DebugCtx 记录 debug 级别日志，并自动附加 context 中的 requestId
+func (l *Logger) DebugCtx(ctx context.Context, msg string, fields ...Field) {
+	l.zl.Debug(msg, appendRequestId(ctx, fields)...)
+}
+
+// InfoCtx 记录 info 级别日志，并自动附加 context 中的 requestId
+func (l *Logger) InfoCtx(ctx context.Context, msg string, fields ...Field) {
+	l.zl.Info(msg, appendRequestId(ctx, fields)...)
+}
+
+// WarnCtx 记录 warn 级别日志，并自动附加 context 中的 requestId
+func (l *Logger) WarnCtx(ctx context.Context, msg string, fields ...Field) {
+	l.zl.Warn(msg, appendRequestId(ctx, fields)...)
+}
+
+// ErrorCtx 记录 error 级别日志，并自动附加 context 中的 requestId
+func (l *Logger) ErrorCtx(ctx context.Context, msg string, fields ...Field) {
+	l.zl.Error(msg, appendRequestId(ctx, fields)...)
+}
+
+// FatalCtx 记录 fatal 级别日志并退出程序，同时自动附加 context 中的 requestId
+func (l *Logger) FatalCtx(ctx context.Context, msg string, fields ...Field) {
+	l.zl.Fatal(msg, appendRequestId(ctx, fields)...)
+}
+
+// DPanicCtx 在开发环境下 panic、生产环境下记录 error，同时自动附加 context 中的 requestId
+func (l *Logger) DPanicCtx(ctx context.Context, msg string, fields ...Field) {
+	l.zl.DPanic(msg, appendRequestId(ctx, fields)...)
 }
 
 // Sync 刷新日志缓冲区

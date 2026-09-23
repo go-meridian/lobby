@@ -1,6 +1,9 @@
 package mqhandler
 
 import (
+	"context"
+
+	"github.com/go-meridian/lobby/config"
 	"github.com/go-meridian/lobby/model/codeerror"
 	"github.com/go-meridian/lobby/model/proto/packet"
 	"github.com/go-meridian/lobby/mq"
@@ -10,7 +13,7 @@ import (
 var log *logger.Logger
 
 // MsgHandler 消息处理函数签名（各 service 通过 init 自注册）
-type MsgHandler func(connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError)
+type MsgHandler func(ctx context.Context, connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError)
 
 var msgRegistry = make(map[uint32]MsgHandler)
 
@@ -20,10 +23,9 @@ func RegisterFn(msgId uint32, fn MsgHandler) {
 }
 
 // RouteMsg 根据 MsgId 分发到对应 handler
-func RouteMsg(connId uint64, requestId uint64, msgId uint32, payload []byte) ([]byte, *codeerror.CodeError) {
-	log.Info("RouteMsg",
+func RouteMsg(ctx context.Context, connId uint64, requestId uint64, msgId uint32, payload []byte) ([]byte, *codeerror.CodeError) {
+	log.InfoCtx(ctx, "RouteMsg",
 		logger.Uint64("connId", connId),
-		logger.Uint64("requestId", requestId),
 		logger.Uint32("msgId", msgId),
 	)
 
@@ -31,19 +33,33 @@ func RouteMsg(connId uint64, requestId uint64, msgId uint32, payload []byte) ([]
 	if !ok {
 		return nil, codeerror.UnknownCmd.Msg("unknown msgId")
 	}
-	return fn(connId, requestId, payload)
+	return fn(ctx, connId, requestId, payload)
 }
 
 // Init 初始化 mqhandler 层
-func Init(l *logger.Logger) {
+func Init(l *logger.Logger, mqCfg *config.MQConfig) {
 	log = l
 
+	subscribeSubject := "gate2lobby.*"
+	publishSubject := "lobby2gate"
+	workerCount := 8
+	if mqCfg != nil {
+		if mqCfg.SubscribeSubject != "" {
+			subscribeSubject = mqCfg.SubscribeSubject
+		}
+		if mqCfg.PublishSubject != "" {
+			publishSubject = mqCfg.PublishSubject
+		}
+		if mqCfg.WorkerCount > 0 {
+			workerCount = mqCfg.WorkerCount
+		}
+	}
+
 	// Gate→Lobby Core NATS 订阅（同步请求-响应）
-	mq.RegisterCoreSubscription("gate2lobby.*", RouteMsg, 8)
+	mq.RegisterCoreSubscription(subscribeSubject, RouteMsg, workerCount)
 
 	// Lobby→Gate 异步发布
-	mq.RegisterPublishStream("LOBBY2GATE", "lobby2gate")
-
+	mq.RegisterPublishStream(publishSubject)
 }
 
 func Register() {

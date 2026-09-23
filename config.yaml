@@ -6,6 +6,11 @@ server:
 nats:
   url: "nats://127.0.0.1:4222"
 
+mq:
+  subscribeSubject: "gate2lobby.*"  # Gate→Lobby 订阅主题
+  publishSubject: "lobby2gate"      # Lobby→Gate 发布主题前缀
+  workerCount: 8                    # 订阅消费 worker 数
+
 log:
   level: "info"
   logFile: "lobby"

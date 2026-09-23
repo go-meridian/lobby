@@ -54,10 +54,10 @@ func main() {
 
 	// ========== 2. 存储层 ==========
 	if ce := db.Init(cfg); ce != nil {
-		log.Fatal("db.Init error", logger.String("error", ce.Error()))
+		log.FatalCtx(context.Background(), "db.Init error", logger.String("error", ce.Error()))
 	}
 	if ce := dao.Init(cfg); ce != nil {
-		log.Fatal("dao.Init error", logger.String("error", ce.Error()))
+		log.FatalCtx(context.Background(), "dao.Init error", logger.String("error", ce.Error()))
 	}
 
 	mqCfg := &mqLib.Config{
@@ -66,13 +66,13 @@ func main() {
 	}
 	mqClient, err := mqLib.NewClient(mqCfg)
 	if err != nil {
-		log.Fatal("mq.NewClient error", logger.Error(err))
+		log.FatalCtx(context.Background(), "mq.NewClient error", logger.Error(err))
 	}
 	defer mqClient.Close()
 
 	// ========== 3. Handler 层 ==========
 	mq.Init(mqClient, log)
-	mqhandler.Init(log)
+	mqhandler.Init(log, cfg.MQ)
 	httphandler.Init(log)
 	eventhandler.Init(log)
 	electhandler.Init(cfg, log)
@@ -83,7 +83,7 @@ func main() {
 
 	// ========== 5. 注册与启动 ==========
 	if ce := mq.Start(); ce != nil {
-		log.Fatal("mq.Start error", logger.String("error", ce.Error()))
+		log.FatalCtx(context.Background(), "mq.Start error", logger.String("error", ce.Error()))
 	}
 
 	mqhandler.Register()
@@ -93,26 +93,28 @@ func main() {
 
 	// ========== 6. 运行 ==========
 	addr := fmt.Sprintf(":%d", cfg.Server.HTTPPort)
-	log.Info("Lobby server started successfully", logger.String("addr", addr))
+	log.InfoCtx(context.Background(), "Lobby server started successfully", logger.String("addr", addr))
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Info("HTTP server listening", logger.String("addr", addr))
+		log.InfoCtx(context.Background(), "HTTP server listening", logger.String("addr", addr))
 		if err := e.Start(addr); err != nil {
-			log.Info("HTTP server stopped", logger.Error(err))
+			log.ErrorCtx(context.Background(), "HTTP server stopped", logger.Error(err))
 		}
 	}()
 
 	<-quit
-	log.Info("Shutting down...")
+	log.InfoCtx(context.Background(), "Shutting down...")
+
+	mq.Stop()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := e.Shutdown(ctx); err != nil {
-		log.Error("HTTP server shutdown error", logger.Error(err))
+		log.ErrorCtx(context.Background(), "HTTP server shutdown error", logger.Error(err))
 	}
 	job.Mgr().StopAll(10 * time.Second)
-	log.Info("Server exited")
+	log.InfoCtx(context.Background(), "Server exited")
 }

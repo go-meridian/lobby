@@ -54,12 +54,20 @@ type NATSConfig struct {
 	URL string `json:"url" yaml:"url"`
 }
 
+// MQConfig MQ 订阅/发布配置
+type MQConfig struct {
+	SubscribeSubject string `json:"subscribeSubject" yaml:"subscribeSubject"` // Gate→Lobby 订阅主题
+	PublishSubject   string `json:"publishSubject" yaml:"publishSubject"`     // Lobby→Gate 发布主题前缀
+	WorkerCount      int    `json:"workerCount" yaml:"workerCount"`           // 订阅消费 worker 数
+}
+
 type Config struct {
 	Server *ServerConfig `json:"server" yaml:"server"`
 	Log    *LogConfig    `json:"log" yaml:"log"`
 	Mongo  *MongoConfig  `json:"mongo" yaml:"mongo"`
 	Redis  *RedisConfig  `json:"redis" yaml:"redis"`
 	NATS   *NATSConfig   `json:"nats" yaml:"nats"`
+	MQ     *MQConfig     `json:"mq,omitempty" yaml:"mq,omitempty"`
 	Elect  *elect.Config `json:"elect,omitempty" yaml:"elect,omitempty"`
 }
 

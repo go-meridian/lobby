@@ -1,6 +1,8 @@
 package httphandler
 
 import (
+	"context"
+
 	"github.com/go-meridian/logger"
 	"github.com/labstack/echo/v4"
 )
@@ -24,7 +26,7 @@ func Register(e *echo.Echo) {
 	// 路由注册
 	e.GET("/health", HandleHealthFunc())
 
-	log.Info("HTTP routes registered",
+	log.InfoCtx(context.Background(), "HTTP routes registered",
 		logger.String("GET", "/health"),
 		logger.String("POST", "/api/proto"),
 	)

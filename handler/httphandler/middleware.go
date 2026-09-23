@@ -13,8 +13,6 @@ import (
 
 var reqIDCounter uint64
 
-const ContextKeyRequestID = "requestID"
-
 // RequestID 请求 ID 中间件，为每次请求生成唯一 ID 用于链路追踪
 func RequestID(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -25,8 +23,9 @@ func RequestID(next echo.HandlerFunc) echo.HandlerFunc {
 				strconv.FormatInt(time.Now().UnixMilli()%100000, 10),
 			)
 		}
-		c.Set(ContextKeyRequestID, requestID)
 		c.Response().Header().Set("X-Request-ID", requestID)
+		ctx := logger.WithRequestId(c.Request().Context(), requestID)
+		c.SetRequest(c.Request().WithContext(ctx))
 		return next(c)
 	}
 }
@@ -36,13 +35,11 @@ func AccessLog() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			req := c.Request()
-			requestID, _ := c.Get(ContextKeyRequestID).(string)
 			start := time.Now()
 			err := next(c)
 			stop := time.Now()
 			res := c.Response()
-			log.Info("request",
-				logger.String("requestID", requestID),
+			log.InfoCtx(c.Request().Context(), "request",
 				logger.String("method", req.Method),
 				logger.String("uri", req.RequestURI),
 				logger.Int("status", res.Status),
@@ -57,9 +54,7 @@ func AccessLog() echo.MiddlewareFunc {
 func Recover() echo.MiddlewareFunc {
 	return middleware.RecoverWithConfig(middleware.RecoverConfig{
 		LogErrorFunc: func(c echo.Context, err error, stack []byte) error {
-			requestID, _ := c.Get(ContextKeyRequestID).(string)
-			log.Error("panic recovered",
-				logger.String("requestID", requestID),
+			log.ErrorCtx(c.Request().Context(), "panic recovered",
 				logger.Error(err),
 				logger.String("stack", string(stack)),
 			)

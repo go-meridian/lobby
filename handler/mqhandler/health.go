@@ -1,6 +1,8 @@
 package mqhandler
 
 import (
+	"context"
+
 	"github.com/go-meridian/lobby/model/codeerror"
 	"github.com/go-meridian/lobby/model/proto/common"
 	"github.com/go-meridian/logger"
@@ -8,10 +10,9 @@ import (
 )
 
 // heartbeatHandler 心跳处理
-func heartbeatHandler(connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError) {
-	log.Info("heartbeatService",
+func heartbeatHandler(ctx context.Context, connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError) {
+	log.InfoCtx(ctx, "heartbeatService",
 		logger.Uint64("connId", connId),
-		logger.Uint64("requestId", requestId),
 	)
 
 	rsp := &common.ErrMsg{

@@ -44,7 +44,7 @@ func Init(cfg *Config) (*zap.Logger, error) {
 	}
 
 	mainCore := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(encoderConfig.EncoderConfig),
+		newKeyValueEncoder(),
 		zapcore.AddSync(mainWriter),
 		encoderConfig.Level,
 	)
@@ -62,7 +62,7 @@ func Init(cfg *Config) (*zap.Logger, error) {
 		})
 
 		errorCore := zapcore.NewCore(
-			zapcore.NewConsoleEncoder(encoderConfig.EncoderConfig),
+			newKeyValueEncoder(),
 			zapcore.AddSync(errorWriter),
 			errorLevelEnabler,
 		)

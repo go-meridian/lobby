@@ -27,7 +27,7 @@ github.com/go-meridian/event
 # github.com/go-meridian/job v1.0.2
 ## explicit; go 1.22.0
 github.com/go-meridian/job
-# github.com/go-meridian/logger v1.0.3
+# github.com/go-meridian/logger v1.0.4
 ## explicit; go 1.22.0
 github.com/go-meridian/logger
 # github.com/go-meridian/mq v1.0.3
