@@ -22,6 +22,8 @@ Go library package (not a binary). Wraps `go.uber.org/zap` with a custom `LogWri
 - 错误日志独立输出：`Config.ErrorFile` 非空时创建独立 `LogWriter` + error 级别 enabler，通过 `zapcore.NewTee(mainCore, errorCore)` 组合双 core
 - `field.go` 导出 zap 字段构造函数（`String`, `Int`, `Error`, `Any` 等），消费方用 `logger.String(...)` 代替 `zap.String(...)`
 - `zap.go` 提供 `Logger` 封装类型，通过 `L()` 获取全局实例或 `Wrap(zapLogger)` 包装已有实例
+- `encoder.go` 自定义 `keyValueEncoder`（实现完整 `zapcore.Encoder`），输出 `DATE[时间] 大写级别 消息 key=value` 单行格式，grep 友好；main/error core 均使用
+- `request_id.go` 提供 `WithRequestId`/`RequestIdFromContext`，`zap.go` 的 `*Ctx` 方法自动从 context 提取 requestId 附加字段
 
 ## 文件结构
 
@@ -31,7 +33,9 @@ Go library package (not a binary). Wraps `go.uber.org/zap` with a custom `LogWri
 | `writer.go` | LogWriter：文件轮转、日期/大小双维度、旧文件清理 |
 | `logger.go` | Init/Get/Close，全局 zap.Logger 管理（atomic.Value + sync.Once 幂等） |
 | `field.go` | zap 字段构造函数的包级导出 |
-| `zap.go` | Logger 封装类型，常用日志方法 |
+| `zap.go` | Logger 封装类型，常用日志方法 + 6 个带 ctx 的 `*Ctx` 方法 |
+| `encoder.go` | 自定义 key=value 编码器，输出 时间 级别 消息 key=value 格式 |
+| `request_id.go` | RequestId 上下文注入与读取，供 Ctx 日志方法自动附加 |
 
 ## Lobby 项目使用方式
 

@@ -17,7 +17,7 @@ const consoleTimeLayout = "2006-01-02T15:04:05.000Z0700"
 var encoderBufferPool = buffer.NewPool()
 
 // keyValueEncoder 自定义日志编码器，输出格式：
-// 2026-09-23T13:10:36.426+0800 INFO RouteCmd cmd=xxx uid=123 requestId=abc-123
+// DATE[2026-09-23T13:10:36.426+0800]  INFO  RouteCmd  cmd=xxx uid=123 requestId=abc-123
 type keyValueEncoder struct {
 	buf *buffer.Buffer // 累积 With 添加的字段
 }
@@ -33,31 +33,29 @@ func (e *keyValueEncoder) Clone() zapcore.Encoder {
 	return clone
 }
 
-// EncodeEntry 编码单条日志为 时间 级别 消息 key=value 格式
+// EncodeEntry 编码单条日志为 DATE[时间] 级别 消息 key=value 格式
 func (e *keyValueEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
 	line := encoderBufferPool.Get()
+	line.AppendString("DATE[")
 	line.AppendTime(ent.Time, consoleTimeLayout)
-	line.AppendString(" ")
+	line.AppendString("]  ")
 	line.AppendString(ent.Level.CapitalString())
-	line.AppendString(" ")
+	line.AppendString("  ")
 	line.AppendString(ent.Message)
 
+	// 合并累积字段（With）与本次字段，字段间用单空格分隔
+	merged := newKeyValueEncoder()
 	if e.buf.Len() > 0 {
-		line.AppendByte(' ')
-		line.AppendBytes(e.buf.Bytes())
+		merged.buf.AppendBytes(e.buf.Bytes())
 	}
-
-	if len(fields) > 0 {
-		tmp := newKeyValueEncoder()
-		for i := range fields {
-			fields[i].AddTo(tmp)
-		}
-		if tmp.buf.Len() > 0 {
-			line.AppendByte(' ')
-			line.AppendBytes(tmp.buf.Bytes())
-		}
-		tmp.buf.Free()
+	for i := range fields {
+		fields[i].AddTo(merged)
 	}
+	if merged.buf.Len() > 0 {
+		line.AppendString("  ")
+		line.AppendBytes(merged.buf.Bytes())
+	}
+	merged.buf.Free()
 
 	line.AppendByte('\n')
 	return line, nil

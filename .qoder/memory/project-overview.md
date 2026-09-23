@@ -21,7 +21,7 @@ Lobby 是游戏大厅业务服务，与 Gate（WebSocket 网关）组成完整�
 | 缓存 | Redis (go-redis v9) |
 | 消息队列 | NATS Core |
 | 序列化 | Protobuf (google.golang.org/protobuf) |
-| 日志 | zap + 日志轮转 (go-meridian/logger) |
+| 日志 | go-meridian/logger v1.0.4（zap 封装 + 文件轮转 + key=value 编码器） |
 | 配置 | viper |
 
 ## 目录结构
@@ -29,7 +29,6 @@ Lobby 是游戏大厅业务服务，与 Gate（WebSocket 网关）组成完整�
 ```
 main.go
   ├── config/               配置加载 (viper)
-  ├── common/logger/        日志系统 (zap + 日志轮转)
   ├── db/                   MongoDB 连接
   ├── dao/                  Redis 缓存
   ├── model/                结构体定义 + 方法

@@ -151,6 +151,8 @@ func Register(e *echo.Echo) {
 
 - 禁止将 log 作为函数参数传递
 - 禁止在结构体中持有 log 字段
+- **所有日志必须使用 `xxCtx` 形式**：`InfoCtx`/`ErrorCtx`/`WarnCtx`/`DebugCtx`/`FatalCtx`/`DPanicCtx`
+- **RequestId 通过 `logger.WithRequestId(ctx, requestId)` 放入 ctx**，由 `xxCtx` 方法自动附加 `requestId=xxx` 字段，禁止手动传 `requestID` 字段
 
 ```go
 package xxx
@@ -160,7 +162,19 @@ var log *logger.Logger
 func Init(l *logger.Logger) {
     log = l
 }
+
+// 请求/消息链路中携带含 requestId 的 ctx
+log.InfoCtx(ctx, "RouteMsg", logger.Uint64("connId", connId))
+log.ErrorCtx(ctx, "panic recovered", logger.Error(err))
+
+// 无请求上下文的启动/后台日志使用 context.Background()
+log.InfoCtx(context.Background(), "server started", logger.String("addr", addr))
 ```
+
+RequestId 流转：
+
+- HTTP：`RequestID` 中间件 `logger.WithRequestId(c.Request().Context(), requestID)` 写入请求 ctx
+- NATS：`handleMessage` 生成 requestId（`req.RequestId` 为空则自动生成 uint64 递增 ID），`logger.WithRequestId(context.Background(), strconv.FormatUint(requestId, 10))` 写入 ctx 后沿 `Handler` → `RouteMsg` → `MsgHandler` 传递
 
 ## 初始化顺序
 
@@ -217,8 +231,8 @@ return err
 ### 请求 ID 链路追踪
 
 ```
-HTTP: middleware 生成 → echo.Context → RouteMsg → MsgHandler
-NATS: Gate 携带 req.RequestId → handleMessage 提取（空则自动生成）
+HTTP: RequestID 中间件生成 → logger.WithRequestId 写入请求 ctx → AccessLog/Recover/handler 用 xxCtx 自动附加
+NATS: Gate 携带 req.RequestId → handleMessage 提取（空则自动生成 uint64 递增 ID）→ logger.WithRequestId 写入 ctx → Handler/MsgHandler 逐层传递
 ```
 
 ## 常量
@@ -271,7 +285,7 @@ go vet ./...
 1. proto 项目定义 .proto 消息 + MsgId 枚举
 2. 复制 .pb.go 到 `model/proto/`，修复 import 路径
 3. 在 `handler/mqhandler/init.go` 的 `register()` 中调用 `Register(msgId, handler)`
-4. handler 签名：`func(connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError)`
+4. handler 签名：`func(ctx context.Context, connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError)`
 
 ### 新增 HTTP 路由
 

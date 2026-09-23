@@ -91,21 +91,22 @@ type NATSClient interface {
 ### 函数签名
 
 ```go
-// mqhandler/ 层：NATS 订阅处理（含 msgId 用于路由分发）
-type MQHandler func(connId uint64, requestId uint64, msgId uint32, payload []byte) ([]byte, *codeerror.CodeError)
+// mq/ 层：NATS 订阅处理（含 msgId 用于路由分发），ctx 首参携带 requestId
+type Handler func(ctx context.Context, connId uint64, requestId uint64, msgId uint32, payload []byte) ([]byte, *codeerror.CodeError)
 
-// mqhandler/ 层：Service 处理函数（msgId 已由 RouteMsg 消费）
-type MsgHandler func(connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError)
+// mqhandler/ 层：Service 处理函数（msgId 已由 RouteMsg 消费），ctx 首参携带 requestId
+type MsgHandler func(ctx context.Context, connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError)
 ```
 
 ### 路由流程
 
 ```
 NATS 消息 → handleMessage (proto.Unmarshal GateRequest)
-  → RouteMsg (根据 msgId 查找 msgRegistry)
-    → MsgHandler (service 业务处理)
-      → 返回 payload ([]byte)
-        → handleMessage 构造 GateResponse (proto.Marshal) → ReplyTo
+  → 生成 requestId 并 logger.WithRequestId 写入 ctx
+    → RouteMsg (根据 msgId 查找 msgRegistry)
+      → MsgHandler (service 业务处理，接收 ctx)
+        → 返回 payload ([]byte)
+          → handleMessage 构造 GateResponse (proto.Marshal) → ReplyTo
 ```
 
 ### MsgId 注册
@@ -124,7 +125,7 @@ func init() {
 1. 在 proto 项目定义 .proto 消息 + MsgId 枚举
 2. 复制 .pb.go 到 `model/proto/`
 3. 在 `../../handler/mqhandler/init.go` 的 `init()` 中调用 `Register(msgId, handler)`
-4. handler 函数签名：`func(connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError)`
+4. handler 函数签名：`func(ctx context.Context, connId uint64, requestId uint64, payload []byte) ([]byte, *codeerror.CodeError)`
 
 ## HTTP Handler 模式
 
@@ -154,8 +155,8 @@ handler/httphandler/
 ### 请求 ID 链路追踪
 
 ```
-HTTP: middleware 生成 → echo.Context → RouteMsg → MsgHandler
-NATS: Gate 携带 req.RequestId → handleMessage 提取（空则自动生成 uint64 递增 ID）
+HTTP: RequestID 中间件生成 → logger.WithRequestId 写入请求 ctx → AccessLog/Recover/handler 用 xxCtx 自动附加
+NATS: Gate 携带 req.RequestId → handleMessage 提取（空则自动生成 uint64 递增 ID）→ logger.WithRequestId 写入 ctx → Handler/MsgHandler 逐层传递
 ```
 
 ## 初始化顺序
